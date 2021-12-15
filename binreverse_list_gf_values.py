@@ -1,6 +1,4 @@
-from bitstring import BitStream
 from pathlib import Path
-import hashlib
 
 ########################################################################
 # Initial conditions
