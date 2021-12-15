@@ -25,10 +25,14 @@ import os
 p1 = Path("pl0615/000C_pl0615data.bin")
 p2 = Path("pl0615data.bin")
 
+known_offsets = [416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428]
+
 # Patch both data files adding val=1 on each bytes
 def patch(beg:int, end:int, val:int = 1):
     with p1.open("rb+") as data1, p2.open("rb+") as data2:
         for i in range(beg, end+1):
+            if i in known_offsets:
+                continue
             data1.seek(i)
             tmp1 = data1.read(1)
             tmp1 = (int.from_bytes(tmp1, "big") + val) % 256
