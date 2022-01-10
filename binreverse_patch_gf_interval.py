@@ -3,7 +3,7 @@ import shutil
 import os
 
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __author__ = "algoflash"
 __license__ = "MIT"
 __status__ = "developpement"
@@ -21,7 +21,7 @@ GF_ISO_PATH = Path("../ROM/Gotcha Force (USA).iso")
 # It will create this folder config :
 # gf_patch/
 #   gf_iso_extract/
-#       dev  # our working dir with backup and uncompressed patched_afs_data
+#       dev  # our working dir with backup and unpacked patched_afs_data
 #       root # iso files
 #       sys  # sys iso files
 #   tools/ # Ours tools
@@ -108,7 +108,7 @@ def get_argparser():
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-i', '--install', action='store_true', help="-i : install the patching config and needed tools inside gf_patch folder")
-    group.add_argument('-p', '--patch', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_add"), type=int, help="-p begining_offset ending_offset value_to_add : patch the range with byte = byte + value ")
+    group.add_argument('-pi', '--patch-interval', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_add"), type=int, help="-p begining_offset ending_offset value_to_add : patch the range with byte = (byte + value) % 256")
     return parser
 
 
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     if args.install:
         print("INSTALLING BASIC PATCH CONFIG IN FOLDER gf_patch")
         install()
-    elif args.patch:
+    elif args.patch_interval:
         print(f"PATCHING Neo GRED Borg {args.patch[0]}:{args.patch[1]} adding {args.patch[2]}")
         # Reset both pl0615 data files in gf_patch folder to their initial state
         shutil.copy(str(backup_1), str(patch_1))
