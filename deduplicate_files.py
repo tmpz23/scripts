@@ -65,7 +65,7 @@ while len(all_files) > 0:
 all_files = list(photos_path.glob("**/* ([0-9]).???"))
 while len(all_files) > 0:
     path = all_files.pop()
-    new_file = photos_path / Path(path.stem[:-4]).with_suffix(path.suffix)
+    new_file = photos_path / Path(path.parent) / Path(path.stem[:-4]).with_suffix(path.suffix)
 
     if not new_file.is_file():
         path.rename( new_file )
