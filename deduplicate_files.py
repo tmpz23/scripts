@@ -147,7 +147,7 @@ Path("duplicated_files.txt").write_text(result_txt)
 print("Fini !")
 """
 ###############################################################
-# compare 2 folders and print duplicated folders in file
+# compare folders and print duplicated folders in a root folder
 ###############################################################
 """
 def folder_compare(folder1:Path, folder2:Path):
@@ -205,29 +205,29 @@ print("Fini !")
 ###############################################################
 """
 original_path = Path()
-dropbox_path = Path()
+duplicated_path = Path()
 
 
-original_file_tuples =  [(path, path.stat().st_size) for path in original_path.glob("**/*") if path.is_file()]
-dropbox_file_tuples =  [(path, path.stat().st_size) for path in dropbox_path.glob("**/*") if path.is_file()]
+original_folder_tuples =  [(path, path.stat().st_size) for path in original_path.glob("**/*") if path.is_file()]
+duplicated_folder_tuples =  [(path, path.stat().st_size) for path in duplicated_path.glob("**/*") if path.is_file()]
 
 count = 1
 
-while len(original_file_tuples) > 0:
-    print(f"file {count}/{len(original_file_tuples)}")
-    tested_tuple = original_file_tuples.pop()
-    tested_len = tested_tuple[1]
+while len(original_folder_tuples) > 0:
+    #print(f"file {count}/{len(original_folder_tuples)}")
+    original_tuple = original_folder_tuples.pop()
+    original_len = original_tuple[1]
     sames_list = []
-    for dropbox_file_tuple in dropbox_file_tuples:
-        if tested_len == dropbox_file_tuple[1]:
-            if tested_tuple[0].read_bytes() == dropbox_file_tuple[0].read_bytes():
-                sames_list.append(dropbox_file_tuple)
-                dropbox_file_tuple[0].unlink()
-                print(f"Removing {dropbox_file_tuple[0]}")
+    for duplicated_file_tuple in duplicated_folder_tuples:
+        if original_len == duplicated_file_tuple[1]:
+            if original_tuple[0].read_bytes() == duplicated_file_tuple[0].read_bytes():
+                sames_list.append(duplicated_file_tuple)
+                duplicated_file_tuple[0].unlink()
+                print(f"Removing {duplicated_file_tuple[0]}")
     # Append paths in results if len > 0:
     if len(sames_list) > 0:
         for same_tuple in sames_list:
-            dropbox_file_tuples.remove(same_tuple)
+            duplicated_folder_tuples.remove(same_tuple)
     count += 1
 
 print("Fini !")
