@@ -4,7 +4,7 @@ import shutil
 from urllib import request
 
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __author__ = "algoflash"
 __license__ = "MIT"
 __status__ = "developpement"
@@ -214,6 +214,7 @@ def get_argparser():
     group.add_argument('-d', '--dump', nargs='+', metavar="offset", type=int, help="-d offset length: dump selected offset")
     group.add_argument('-pii', '--patch-interval-increment', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_add"), type=int, help="-pii begining_offset ending_offset value_to_add: patch the range with byte = (byte + value) %% 256")
     group.add_argument('-pis', '--patch-interval-set', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_set"), type=int, help="-pis begining_offset ending_offset value_to_set: patch the range with byte = value")
+    group.add_argument('-pr', '--patch-run', action='store_true', help=f"-pr: patch and run the game using the borg file {borg_data_path} as-is.")
     return parser
 
 
@@ -284,3 +285,5 @@ if __name__ == '__main__':
                 mini = m
             else:
                 maxi = m
+    elif args.patch_run:
+        rebuild_run()
