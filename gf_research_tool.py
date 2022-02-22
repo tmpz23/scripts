@@ -11,7 +11,7 @@ __status__ = "developpement"
 
 
 # Original Gotcha Force GCM iso PATH
-GF_ISO_PATH = Path("../ROM/Gotcha Force (USA).iso")
+GF_ISO_PATH = Path("ROM/Gotcha Force (USA).iso")
 # https://fr.dolphin-emu.org/download/
 dolphin_path = Path("C:/Program Files/Dolphin/Dolphin.exe")
 ###############################################################
@@ -141,13 +141,21 @@ def patch(file_path:Path, beg:int, end:int, val:int = 1):
 
 def get_argparser():
     import argparse
-    parser = argparse.ArgumentParser(description='Borg Research Tool - [GameCube] Gotcha Force v' + __version__)
+    parser = argparse.ArgumentParser(description=\
+        " _____ _     _           _    _ _ _         _   _    _____ _____ \n"+
+        "|  |  |_|___| |_ _ _ ___| |  | | | |___ ___| |_| |  | __  |   __|\n"+
+        "|  |  | |  _|  _| | | .'| |  | | | | . |  _| | . |  |    -|   __|\n"+
+        " \___/|_|_| |_| |___|__,|_|  |_____|___|_| |_|___|  |__|__|_____|\n"+
+        "Gotcha Force modding - Borg research tool - [GameCube] v"+ __version__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
+
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-i', '--install', action='store_true', help="-i: install the patching config and needed tools inside gf_patch folder")
     group.add_argument('-u', '--update', action='store_true', help="-u: remove tools folder and download last version of this script & tools")
+    """
     group.add_argument('-pii', '--patch-interval-increment', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_add"), type=int, help="-p begining_offset ending_offset value_to_add: patch the range with byte = (byte + value) % 256")
     group.add_argument('-pis', '--patch-interval-set', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_set"), type=int, help="-p begining_offset ending_offset value_to_set: patch the range with byte = value")
+    """
     return parser
 
 
