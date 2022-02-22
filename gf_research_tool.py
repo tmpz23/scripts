@@ -207,6 +207,13 @@ if __name__ == '__main__':
 
         searched_range = range(mini, maxi)
 
+        print(f"Patching {mini}-{maxi} to identify a change")
+        # Reset both pl0615 data files in gf_patch folder to their initial state
+        shutil.copy(borg_data_backup_path, borg_data_path)
+        
+        patch(borg_data_path, mini, maxi, added_val)
+        rebuild_run()
+
         if len(searched_range) == 0: # bad args
             print("Not a valid range")
         while True:
@@ -218,7 +225,7 @@ if __name__ == '__main__':
             print(f"tested range: {m}-{maxi}")
             # Reset both pl0615 data files in gf_patch folder to their initial state
             shutil.copy(borg_data_backup_path, borg_data_path)
-            
+
             patch(borg_data_path, m, maxi, added_val)
             rebuild_run()
 
