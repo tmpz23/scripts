@@ -43,74 +43,100 @@ gcmtool_path = Path("tools/gcmtool.py")
 ###############################################################
 # Paths
 ###############################################################
-borg_dev_path = Path("gf_patch/borg")
-borg_backup_path = Path("gf_patch/borg/backup")
-tools_path = Path("gf_patch/tools")
-afs_unpack = Path("gf_patch/afsdata_unpack")
-iso_unpack = Path("gf_patch/iso_unpack")
-pzz_unpack = Path("gf_patch/pzz_unpack")
+borg_data_backup_path = Path("borg/pl0615data.bin.back")
+borg_data_path = Path("borg/pl0615data.bin")
+
+afs_unpack = Path("afsdata_unpack")
+iso_unpack = Path("iso_unpack")
+pzz_unpack = Path("pzz_unpack")
 
 ###############################################################
 # FUNCTIONS
 ###############################################################
 def install_tools(tools_path):
     tools_path.mkdir(parents=True)
-    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/pzztool.py", f"{tools_path}/pzztool.py")
-    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/afstool.py", f"{tools_path}/afstool.py")
-    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool.py", f"{tools_path}/gcmtool.py")
+    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/pzztool.py", tools_path / "pzztool.py")
+    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/afstool.py", tools_path / "afstool.py")
+    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool.py", tools_path / "gcmtool.py")
 
 
 def install():
-    install_tools(tools_path)
+    root_path = Path("gf_patch")
 
-    print("Extracting iso files")
-    if os.system(f"python gf_patch/tools/gcmtool.py -u \"{GF_ISO_PATH}\" \"{iso_unpack}\"") != 0:
+    install_tools(root_path / "tools")
+
+    print("###############################################################")
+    print("# Extracting iso files")
+    print("###############################################################")
+    if os.system(f"python {root_path / gcmtool_path} -u \"{GF_ISO_PATH}\" \"{root_path / iso_unpack}\"") != 0:
         raise Exception("Error while unpacking GCM iso.")
 
-    print("Rebuilding fst for faster rebuild of GCM ISO.")
-    if os.system(f"python gf_patch/tools/gcmtool.py -r \"{iso_unpack}\" -a=4") != 0:
+    print("###############################################################")
+    print("# Rebuilding FST for faster rebuild of GCM ISO.")
+    print("###############################################################")
+    if os.system(f"python {root_path / gcmtool_path} -r \"{root_path / iso_unpack}\" -a=4") != 0:
         raise Exception("Error while rebuilding GCM FST.")
 
-    print("Extracting afs_data.afs files")
-    if os.system(f"python gf_patch/tools/afstool.py -u {iso_unpack}/root/afs_data.afs {afs_unpack}") != 0:
+    print("###############################################################")
+    print("# Extracting afs_data.afs files")
+    print("###############################################################")
+    if os.system(f"python {root_path / afstool_path} -u {root_path / iso_unpack}/root/afs_data.afs {root_path / afs_unpack}") != 0:
         raise Exception("Error while unpacking AFS file.")
+    
+    print("###############################################################")
+    print("# Writting new AFS rebuild config and rebuilding AFS.")
+    print("###############################################################")
+    from configparser import ConfigParser
+    config = ConfigParser(allow_no_value=True) # allow_no_value to allow adding comments
+    config.optionxform = str # makes options case sensitive
+    config.read(root_path / afs_unpack / 'sys' / 'afs_rebuild.conf')
+    config.set("Default", "# Documentation available here: https://github.com/Virtual-World-RE/NeoGF/blob/main/README.md#afs_rebuildconf--afs_rebuildcsv")
+    config.set("Default", "files_rebuild_strategy", "index")
+    config.set("FilenameDirectory", "toc_offset_of_fd_offset", "auto")
+    config.set("FilenameDirectory", "fd_offset", "auto")
+    config.write((root_path / afs_unpack / 'sys' / 'afs_rebuild.conf').open("w"))
+    if os.system(f"python {root_path / afstool_path} -r {root_path / afs_unpack}") != 0:
+        raise Exception("Error while rebuilding AFS.")
 
-    print("Extracting borg files.")
-    if os.system(f"python gf_patch/tools/pzztool.py --unpack {afs_unpack}/root/pl0615.pzz {pzz_unpack}") != 0:
+    print("###############################################################")
+    print("# Extracting borg files.")
+    print("###############################################################")
+    if os.system(f"python {root_path / pzztool_path} --unpack {root_path / afs_unpack}/root/pl0615.pzz {root_path / pzz_unpack}") != 0:
         raise Exception("Error while unpacking borg pzz.")
-    if os.system(f"python gf_patch/tools/pzztool.py --decompress {pzz_unpack}/000C_pl0615.pzzp") != 0:
+    if os.system(f"python {root_path / pzztool_path} --decompress {root_path / pzz_unpack}/000C_pl0615.pzzp") != 0:
         raise Exception("Error while decompressing borg pzz data file.")
-    Path(f"{pzz_unpack}/000C_pl0615.pzzp").unlink()
+    (root_path / pzz_unpack / "000C_pl0615.pzzp").unlink()
 
-    borg_backup_path.mkdir(parents=True)
-    print("Creating borg backup files")
-    shutil.copy(f"{afs_unpack}/root/pl0615data.bin", f"{borg_backup_path}/pl0615data.bin")
-    shutil.copy(f"{pzz_unpack}/000C_pl0615data.bin", f"{borg_backup_path}/000C_pl0615data.bin")
+    print("###############################################################")
+    print("# Creating borg data backup file")
+    print("###############################################################")
+    (root_path / "borg").mkdir()
+    shutil.copy( root_path / afs_unpack / "root" / "pl0615data.bin", root_path / borg_data_backup_path)
 
-    print("Moving this script in gf_patch folder.")
-    shutil.move("gf_research_tool.py", "gf_patch/gf_research_tool.py")
+    print("###############################################################")
+    print(f"# Moving this script in {root_path} folder.")
+    print("###############################################################")
+    shutil.move("gf_research_tool.py", root_path / "gf_research_tool.py")
 
     print("Installation is now completed.")
 
 def update():
-    from urllib import request
     shutil.rmtree("tools")
     install_tools(Path("tools"))
     request.urlretrieve("https://raw.githubusercontent.com/tmpz23/scripts/main/gf_research_tool.py", f"gf_research_tool.py")
 
 
 # Patch both data files adding val=1 on each bytes
-def patch(beg:int, end:int, val:int = 1):
+def patch(file_path:Path, beg:int, end:int, val:int = 1):
     known_offsets = [416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428]
-    with patch_1.open("rb+") as patch_1_file:
+    with file_path.open("rb+") as patch_file:
         for i in range(beg, end):
             if i in known_offsets:
                 continue
-            patch_1_file.seek(i)
-            tmp_val = ((int.from_bytes(patch_1_file.read(1), "big") + val) % 256).to_bytes(1, "big")
-            patch_1_file.seek(i)
-            patch_1_file.write(tmp_val)
-    shutil.copy(patch_1, patch_2)
+            patch_file.seek(i)
+            tmp_val = ((int.from_bytes(patch_file.read(1), "big") + val) % 256).to_bytes(1, "big")
+            patch_file.seek(i)
+            patch_file.write(tmp_val)
 
 
 def get_argparser():
@@ -142,16 +168,15 @@ if __name__ == '__main__':
             raise Exception("Error - This script is not installed. Install it before updating.")
         update()
     elif args.patch_interval_increment: # add while range > 1 with dichotomical choice after each exec
-        print(f"PATCHING Neo GRED Borg {args.patch_interval_increment[0]}:{args.patch_interval_increment[1]} adding {args.patch_interval_increment[2]}")
+        print(f"# Patching Neo GRED Borg [{args.patch_interval_increment[0]}:{args.patch_interval_increment[1]}[ adding {args.patch_interval_increment[2]}")
         # Reset both pl0615 data files in gf_patch folder to their initial state
-        shutil.copy(backup_1, patch_1)
-        shutil.copy(backup_2, patch_2)
+        shutil.copy(borg_data_backup_path, borg_data_path)
 
         # Here is the interval that you can set for patching data files and test what's going on ingame
         #mini = (patch_1.stat().st_size // 16) * 6
         #maxi = (patch_1.stat().st_size // 16) * 7
 
-        patch(args.patch_interval_increment[0], args.patch_interval_increment[1], args.patch_interval_increment[2])
+        patch(borg_data_path, args.patch_interval_increment[0], args.patch_interval_increment[1], args.patch_interval_increment[2])
 
         # PZZ back the pl0615
         if os.system(f"python {pzztool_path} -pzz {patch_1.parent} {dest_patch1} > NUL") != 0:
