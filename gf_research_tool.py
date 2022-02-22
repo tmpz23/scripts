@@ -1,6 +1,7 @@
+import os
 from pathlib import Path
 import shutil
-import os
+from urllib import request
 
 
 __version__ = "0.1.0"
@@ -11,10 +12,12 @@ __status__ = "developpement"
 
 # Original Gotcha Force GCM iso PATH
 GF_ISO_PATH = Path("../ROM/Gotcha Force (USA).iso")
+# https://fr.dolphin-emu.org/download/
+dolphin_path = Path("C:/Program Files/Dolphin/Dolphin.exe")
 ###############################################################
 # MANUAL
 ###############################################################
-# set GF_ISO_PATH with the path of your iso
+# set GF_ISO_PATH with the path of your iso & dolphin_path with you dolphin emu install
 #
 # It will create this folder config:
 # gf_patch/
@@ -37,8 +40,6 @@ pzztool_path = Path("tools/pzztool.py")
 afstool_path = Path("tools/afstool.py")
 # https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool.py
 gcmtool_path = Path("tools/gcmtool.py")
-# https://fr.dolphin-emu.org/download/
-dolphin_path = Path("C:/Program Files/Dolphin/Dolphin.exe")
 ###############################################################
 # Paths
 ###############################################################
@@ -52,15 +53,15 @@ pzz_unpack = Path("gf_patch/pzz_unpack")
 ###############################################################
 # FUNCTIONS
 ###############################################################
-def install_tools():
-    Path("gf_patch/tools").mkdir(parents=True)
-    print("Downloading tools")
-    from urllib import request
+def install_tools(tools_path):
+    tools_path.mkdir(parents=True)
     request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/pzztool.py", f"{tools_path}/pzztool.py")
     request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/afstool.py", f"{tools_path}/afstool.py")
     request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool.py", f"{tools_path}/gcmtool.py")
+
+
 def install():
-    install_tools()
+    install_tools(tools_path)
 
     print("Extracting iso files")
     if os.system(f"python gf_patch/tools/gcmtool.py -u \"{GF_ISO_PATH}\" \"{iso_unpack}\"") != 0:
@@ -92,9 +93,10 @@ def install():
     print("Installation is now completed.")
 
 def update():
+    from urllib import request
     shutil.rmtree("tools")
-    install_tools()
-    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool.py", f"gcmtool.py")
+    install_tools(Path("tools"))
+    request.urlretrieve("https://raw.githubusercontent.com/tmpz23/scripts/main/gf_research_tool.py", f"gf_research_tool.py")
 
 
 # Patch both data files adding val=1 on each bytes
