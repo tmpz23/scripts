@@ -72,12 +72,6 @@ def install():
         raise Exception("Error while unpacking GCM iso.")
 
     print("###############################################################")
-    print("# Rebuilding FST for faster rebuild of GCM ISO.")
-    print("###############################################################")
-    if os.system(f"python {root_path / gcmtool_path} -r \"{root_path / iso_unpack}\" -a=4") != 0:
-        raise Exception("Error while rebuilding GCM FST.")
-
-    print("###############################################################")
     print("# Extracting afs_data.afs files")
     print("###############################################################")
     if os.system(f"python {root_path / afstool_path} -u {root_path / iso_unpack}/root/afs_data.afs {root_path / afs_unpack}") != 0:
@@ -97,6 +91,14 @@ def install():
     config.write((root_path / afs_unpack / 'sys' / 'afs_rebuild.conf').open("w"))
     if os.system(f"python {root_path / afstool_path} -r {root_path / afs_unpack}") != 0:
         raise Exception("Error while rebuilding AFS.")
+    if os.system(f"python {root_path / afstool_path} -p {root_path / afs_unpack} {root_path / iso_unpack / 'root' / 'afs_data.afs'}") != 0:
+        raise Exception("Error while packing AFS.")
+
+    print("###############################################################")
+    print("# Rebuilding FST for faster rebuild of GCM ISO.")
+    print("###############################################################")
+    if os.system(f"python {root_path / gcmtool_path} -r \"{root_path / iso_unpack}\" -a=4") != 0:
+        raise Exception("Error while rebuilding GCM FST.")
 
     print("###############################################################")
     print("# Extracting borg files.")
@@ -118,7 +120,9 @@ def install():
     print("###############################################################")
     shutil.move("gf_research_tool.py", root_path / "gf_research_tool.py")
 
+    print("###############################################################")
     print("Installation is now completed.")
+    print("###############################################################")
 
 def update():
     shutil.rmtree("tools")
@@ -152,10 +156,8 @@ def get_argparser():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-i', '--install', action='store_true', help="-i: install the patching config and needed tools inside gf_patch folder")
     group.add_argument('-u', '--update', action='store_true', help="-u: remove tools folder and download last version of this script & tools")
-    """
-    group.add_argument('-pii', '--patch-interval-increment', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_add"), type=int, help="-p begining_offset ending_offset value_to_add: patch the range with byte = (byte + value) % 256")
-    group.add_argument('-pis', '--patch-interval-set', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_set"), type=int, help="-p begining_offset ending_offset value_to_set: patch the range with byte = value")
-    """
+    group.add_argument('-pii', '--patch-interval-increment', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_add"), type=int, help="-pii begining_offset ending_offset value_to_add: patch the range with byte = (byte + value) %% 256")
+    group.add_argument('-pis', '--patch-interval-set', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_set"), type=int, help="-pis begining_offset ending_offset value_to_set: patch the range with byte = value")
     return parser
 
 
@@ -185,17 +187,18 @@ if __name__ == '__main__':
         #maxi = (patch_1.stat().st_size // 16) * 7
 
         patch(borg_data_path, args.patch_interval_increment[0], args.patch_interval_increment[1], args.patch_interval_increment[2])
+        shutil.copy(borg_data_path, afs_unpack / "root" / "pl0615data.bin")
+        shutil.copy(borg_data_path, pzz_unpack / "000C_pl0615data.bin")
 
         # PZZ back the pl0615
-        if os.system(f"python {pzztool_path} -pzz {patch_1.parent} {dest_patch1} > NUL") != 0:
-            raise Exception(f"Error during pzz of the file {patch_1.parent}")
-        shutil.copy(patch_2, dest_patch2)
+        if os.system(f"python {pzztool_path} -pzz {pzz_unpack} {afs_unpack / 'root'/ 'pl0615.pzz'}") != 0:
+            raise Exception(f"Error while pzz of folder {pzz_unpack}")
         # Pack afs_data
-        if os.system(f"python {afstool_path} -p gf_iso_extract/dev/patched_afs_data gf_iso_extract/root/afs_data.afs") != 0:
-            raise Exception("Error during AFS packing of the folder gf_iso_extract/dev/patched_afs_data")
+        if os.system(f"python {afstool_path} -p {afs_unpack} {iso_unpack / 'root' / 'afs_data.afs'}") != 0:
+            raise Exception("Error while AFS pack")
         # Import back of the afs_data.afs in the iso file
-        if os.system(f"python {gcmtool_path} -p gf_iso_extract gf_patched.iso") != 0:
-            raise Exception("Error during packing of the GCM iso using folder gf_iso_extract.")
+        if os.system(f"python {gcmtool_path} -p {iso_unpack} gf_patched.iso") != 0:
+            raise Exception("Error while GCM pack.")
         # Run the game with dolphin
         if os.system(f"\"{dolphin_path}\" /e gf_patched.iso /b") != 0:
             raise Exception("Error with Dolphin Emulator run.")
