@@ -132,15 +132,35 @@ def update():
 
 # Patch both data files adding val=1 on each bytes
 def patch(file_path:Path, beg:int, end:int, val:int = 1):
-    known_offsets = [416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428]
+    #known_offsets = [416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428]
     with file_path.open("rb+") as patch_file:
         for i in range(beg, end):
-            if i in known_offsets:
-                continue
+            #if i in known_offsets:
+            #    continue
             patch_file.seek(i)
             tmp_val = ((int.from_bytes(patch_file.read(1), "big") + val) % 256).to_bytes(1, "big")
             patch_file.seek(i)
             patch_file.write(tmp_val)
+
+
+def rebuild_run():
+    shutil.copy(borg_data_path, afs_unpack / "root" / "pl0615data.bin")
+    shutil.copy(borg_data_path, pzz_unpack / "000C_pl0615data.bin")
+
+    # PZZ back the pl0615
+    if os.system(f"python {pzztool_path} -pzz {pzz_unpack} {afs_unpack / 'root'/ 'pl0615.pzz'}") != 0:
+        raise Exception(f"Error while pzz of folder {pzz_unpack}")
+    # Pack afs_data
+    if os.system(f"python {afstool_path} -p {afs_unpack} {iso_unpack / 'root' / 'afs_data.afs'}") != 0:
+        raise Exception("Error while AFS pack")
+    if Path("gf_patched.iso").is_file():
+        Path("gf_patched.iso").unlink()
+    # Import back of the afs_data.afs in the iso file
+    if os.system(f"python {gcmtool_path} -p {iso_unpack} gf_patched.iso") != 0:
+        raise Exception("Error while GCM pack.")
+    # Run the game with dolphin
+    if os.system(f"\"{dolphin_path}\" /e gf_patched.iso /b") != 0:
+        raise Exception("Error with Dolphin Emulator run.")
 
 
 def get_argparser():
@@ -178,29 +198,35 @@ if __name__ == '__main__':
             raise Exception("Error - This script is not installed. Install it before updating.")
         update()
     elif args.patch_interval_increment: # add while range > 1 with dichotomical choice after each exec
-        print(f"# Patching Neo GRED Borg [{args.patch_interval_increment[0]}:{args.patch_interval_increment[1]}[ adding {args.patch_interval_increment[2]}")
-        # Reset both pl0615 data files in gf_patch folder to their initial state
-        shutil.copy(borg_data_backup_path, borg_data_path)
+        print(f"# Patching Neo GRED Borg [{args.patch_interval_increment[0]}:{args.patch_interval_increment[1]}] adding {args.patch_interval_increment[2]}")
 
         # Here is the interval that you can set for patching data files and test what's going on ingame
-        #mini = (patch_1.stat().st_size // 16) * 6
-        #maxi = (patch_1.stat().st_size // 16) * 7
+        mini = args.patch_interval_increment[0]
+        maxi = args.patch_interval_increment[1]
+        added_val = args.patch_interval_increment[2]
 
-        patch(borg_data_path, args.patch_interval_increment[0], args.patch_interval_increment[1], args.patch_interval_increment[2])
-        shutil.copy(borg_data_path, afs_unpack / "root" / "pl0615data.bin")
-        shutil.copy(borg_data_path, pzz_unpack / "000C_pl0615data.bin")
+        searched_range = range(mini, maxi)
 
-        # PZZ back the pl0615
-        if os.system(f"python {pzztool_path} -pzz {pzz_unpack} {afs_unpack / 'root'/ 'pl0615.pzz'}") != 0:
-            raise Exception(f"Error while pzz of folder {pzz_unpack}")
-        # Pack afs_data
-        if os.system(f"python {afstool_path} -p {afs_unpack} {iso_unpack / 'root' / 'afs_data.afs'}") != 0:
-            raise Exception("Error while AFS pack")
-        # Import back of the afs_data.afs in the iso file
-        if os.system(f"python {gcmtool_path} -p {iso_unpack} gf_patched.iso") != 0:
-            raise Exception("Error while GCM pack.")
-        # Run the game with dolphin
-        if os.system(f"\"{dolphin_path}\" /e gf_patched.iso /b") != 0:
-            raise Exception("Error with Dolphin Emulator run.")
+        if len(searched_range) == 0: # bad args
+            print("Not a valid range")
+        while True:
+            m = (mini + maxi) // 2
+            if mini == m:
+                print(f"last studied byte offset: {mini}")
+                break
+
+            print(f"tested range: {m}-{maxi}")
+            # Reset both pl0615 data files in gf_patch folder to their initial state
+            shutil.copy(borg_data_backup_path, borg_data_path)
+            
+            patch(borg_data_path, m, maxi, added_val)
+            rebuild_run()
+
+            # we patch trying rigth part and 
+            # if we found the change in patched range we keep the interval
+            if input("If the change is still here type y/Y:").lower() == "y":
+                mini = m
+            else:
+                maxi = m
     elif args.patch_interval_set: # add while range > 1 with dichotomical choice after each exec
         raise Exception("Error - Not implemented yet")
