@@ -4,7 +4,7 @@ import shutil
 from urllib import request
 
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "algoflash"
 __license__ = "MIT"
 __status__ = "developpement"
@@ -14,23 +14,30 @@ __status__ = "developpement"
 GF_ISO_PATH = Path("ROM/Gotcha Force (USA).iso")
 # https://fr.dolphin-emu.org/download/
 dolphin_path = Path("C:/Program Files/Dolphin/Dolphin.exe")
+
+blacklist_offsets = [
+    #184 = camera position ?
+    163, # black screen when adding 20
+    192, # black screen when adding 20
+    196, # black screen when adding 20
+    416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428]
 ###############################################################
 # MANUAL
 ###############################################################
-# set GF_ISO_PATH with the path of your iso & dolphin_path with you dolphin emu install
-#
-# It will create this folder config:
-# gf_patch/
-#   afsdata_unpack/
-#       root # afs files
-#       sys # afs sys and config files
-#   iso_unpack/
-#       root # iso files
-#       sys  # sys iso files
-#   pzz_unpack/
-#   tools/ # Ours tools
-#   gf_patched.iso # our patched iso to test
-#   gf_research_tool.py <- this script !
+    # set GF_ISO_PATH with the path of your iso & dolphin_path with you dolphin emu install
+    #
+    # It will create this folder config:
+    # gf_patch/
+    #   afsdata_unpack/
+    #       root # afs files
+    #       sys # afs sys and config files
+    #   iso_unpack/
+    #       root # iso files
+    #       sys  # sys iso files
+    #   pzz_unpack/
+    #   tools/ # Ours tools
+    #   gf_patched.iso # our patched iso to test
+    #   gf_research_tool.py <- this script !
 ###############################################################
 # TOOLS PATHS
 ###############################################################
@@ -49,6 +56,33 @@ borg_data_path = Path("borg/pl0615data.bin")
 afs_unpack = Path("afsdata_unpack")
 iso_unpack = Path("iso_unpack")
 pzz_unpack = Path("pzz_unpack")
+###############################################################
+# Helpers
+###############################################################
+class Dumper:
+    __path = None
+    __data = None
+    def __init__(self, path:Path):
+        self.__path = path
+        self.__data = path.read_bytes()
+    def dump(self, offset:int, length:int):
+        buff_str = ""
+        beg = offset - (offset % 16)
+        if beg > 16:
+            beg -= 16
+
+        for i in range(0x30):
+            current_offset = beg + i
+            if current_offset >= len(self.__data):
+                break
+            if current_offset % 16 == 0:
+                buff_str += f"\n0x{current_offset:08x}:{current_offset:08}: "
+            if current_offset == offset:
+                buff_str += "["
+            elif current_offset == offset + length:
+                buff_str = buff_str[:-1] + "] "
+            buff_str += f"{self.__data[current_offset]:02x} "
+        print(buff_str[1:])
 
 ###############################################################
 # FUNCTIONS
@@ -124,6 +158,7 @@ def install():
     print("Installation is now completed.")
     print("###############################################################")
 
+
 def update():
     shutil.rmtree("tools")
     install_tools(Path("tools"))
@@ -131,16 +166,16 @@ def update():
 
 
 # Patch both data files adding val=1 on each bytes
-def patch(file_path:Path, beg:int, end:int, val:int = 1):
-    #known_offsets = [416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428]
+def patch(file_path:Path, beg:int, end:int, val:int, set_bool:bool):
+    print(blacklist_offsets)
     with file_path.open("rb+") as patch_file:
         for i in range(beg, end):
-            #if i in known_offsets:
-            #    continue
+            if i in blacklist_offsets:
+                continue
             patch_file.seek(i)
-            tmp_val = ((int.from_bytes(patch_file.read(1), "big") + val) % 256).to_bytes(1, "big")
+            tmp_val = val if set_bool else (int.from_bytes(patch_file.read(1), "big") + val) % 256
             patch_file.seek(i)
-            patch_file.write(tmp_val)
+            patch_file.write(tmp_val.to_bytes(1, "big"))
 
 
 def rebuild_run():
@@ -176,6 +211,7 @@ def get_argparser():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-i', '--install', action='store_true', help="-i: install the patching config and needed tools inside gf_patch folder")
     group.add_argument('-u', '--update', action='store_true', help="-u: remove tools folder and download last version of this script & tools")
+    group.add_argument('-d', '--dump', nargs='+', metavar="offset", type=int, help="-d offset length: dump selected offset")
     group.add_argument('-pii', '--patch-interval-increment', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_add"), type=int, help="-pii begining_offset ending_offset value_to_add: patch the range with byte = (byte + value) %% 256")
     group.add_argument('-pis', '--patch-interval-set', nargs=3, metavar=("begin_offset", "ending_offset", "value_to_set"), type=int, help="-pis begining_offset ending_offset value_to_set: patch the range with byte = value")
     return parser
@@ -197,13 +233,26 @@ if __name__ == '__main__':
         if not Path("tools").is_dir() or not Path("gf_research_tool.py").is_file():
             raise Exception("Error - This script is not installed. Install it before updating.")
         update()
-    elif args.patch_interval_increment: # add while range > 1 with dichotomical choice after each exec
-        print(f"# Patching Neo GRED Borg [{args.patch_interval_increment[0]}:{args.patch_interval_increment[1]}] adding {args.patch_interval_increment[2]}")
+    elif args.dump:
+        dumper = Dumper(borg_data_backup_path)
+        dumper.dump(args.dump[0], args.dump[1] if len(args.dump) > 1 else 1)
+    elif args.patch_interval_increment or args.patch_interval_set:
+        mini = None
+        maxi = None
+        val = None
+        if args.patch_interval_increment:
+            mini = args.patch_interval_increment[0]
+            maxi = args.patch_interval_increment[1] + 1
+            val = args.patch_interval_increment[2]
+        else:
+            mini = args.patch_interval_set[0]
+            maxi = args.patch_interval_set[1] + 1
+            val = args.patch_interval_set[2]
+
+        print(f"# Patching Neo GRED Borg [{mini}:{maxi}] {'adding' if args.patch_interval_increment else 'with value'} {val}")
 
         # Here is the interval that you can set for patching data files and test what's going on ingame
-        mini = args.patch_interval_increment[0]
-        maxi = args.patch_interval_increment[1]
-        added_val = args.patch_interval_increment[2]
+
 
         searched_range = range(mini, maxi)
 
@@ -211,7 +260,7 @@ if __name__ == '__main__':
         # Reset both pl0615 data files in gf_patch folder to their initial state
         shutil.copy(borg_data_backup_path, borg_data_path)
         
-        patch(borg_data_path, mini, maxi, added_val)
+        patch(borg_data_path, mini, maxi, val, args.patch_interval_set != None)
         rebuild_run()
 
         if len(searched_range) == 0: # bad args
@@ -226,7 +275,7 @@ if __name__ == '__main__':
             # Reset both pl0615 data files in gf_patch folder to their initial state
             shutil.copy(borg_data_backup_path, borg_data_path)
 
-            patch(borg_data_path, m, maxi, added_val)
+            patch(borg_data_path, m, maxi, val, args.patch_interval_set != None)
             rebuild_run()
 
             # we patch trying rigth part and 
@@ -235,5 +284,3 @@ if __name__ == '__main__':
                 mini = m
             else:
                 maxi = m
-    elif args.patch_interval_set: # add while range > 1 with dichotomical choice after each exec
-        raise Exception("Error - Not implemented yet")
