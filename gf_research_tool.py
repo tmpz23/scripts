@@ -4,7 +4,7 @@ import shutil
 from urllib import request
 
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "algoflash"
 __license__ = "MIT"
 __status__ = "developpement"
@@ -15,12 +15,23 @@ GF_ISO_PATH = Path("ROM/Gotcha Force (USA).iso")
 # https://fr.dolphin-emu.org/download/
 dolphin_path = Path("C:/Program Files/Dolphin/Dolphin.exe")
 
+# Possible camera float value :
+# 163, # black screen when adding 20
+
+# knowns values:
 blacklist_offsets = [
-    #184 = camera position ?
-    163, # black screen when adding 20
-    192, # black screen when adding 20
-    196, # black screen when adding 20
-    416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428]
+    44, 45, 46, 47,     # move speed
+    108, 109, 110, 111, # falling acceleration
+    120, 121, 122, 123, # jetpack_distancea
+    124, 125, 126, 127, # falling_speed
+    184, 185, 186, 187, # camera_focus_z
+    188, 189, 190, 191, # camera_focus_z_after_shoot
+    192, 193, 194, 195, # camera_distance
+    196, 197, 198, 199, # camera_initial_distance
+    200, 201, 202, 203, # camera_distance_after_shoot
+    204, 205, 206, 207, # camera_z_after_kill
+    240, 241, 242, 243, # camera_move_delta_distance
+    416, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428] # collection menu properties
 ###############################################################
 # MANUAL
 ###############################################################
@@ -205,7 +216,7 @@ def get_argparser():
         "|  |  |_|___| |_ _ _ ___| |  | | | |___ ___| |_| |  | __  |   __|\n"+
         "|  |  | |  _|  _| | | .'| |  | | | | . |  _| | . |  |    -|   __|\n"+
         " \___/|_|_| |_| |___|__,|_|  |_____|___|_| |_|___|  |__|__|_____|\n"+
-        "Gotcha Force modding - Borg research tool - [GameCube] v"+ __version__, formatter_class=argparse.RawTextHelpFormatter)
+        "Gotcha Force modding - Borg research tool - [GameCube] v"+ __version__+"\nplxxxxdata.bin is in big endian", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
 
     group = parser.add_mutually_exclusive_group(required=True)
