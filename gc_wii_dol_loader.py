@@ -2,7 +2,7 @@ import ctypes
 import idaapi
 
 
-__version__ = "1.0"
+__version__ = "1.1"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
@@ -101,7 +101,6 @@ def load_file(li, neflags, fmt):
 
     header = get_dol_header(li)
 
-    cvar.inf.beginEA = cvar.inf.startIP = header.entry_point
     idaapi.set_selector(1, 0);
 
     flags = ADDSEG_NOTRUNC|ADDSEG_OR_DIE
@@ -167,5 +166,7 @@ def load_file(li, neflags, fmt):
             AddSegEx(bss_range_parts[i][0], bss_range_parts[i][1], 0, 1, saRelPara, scPub, flags)
             RenameSeg(bss_range_parts[i][0], ".bss{0}".format(i))
             SetSegmentType(bss_range_parts[i][0], SEG_BSS)
+
+    idaapi.add_entry(header.entry_point, header.entry_point, "start", 1)
 
     return True
