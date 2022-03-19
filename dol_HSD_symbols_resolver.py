@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 __author__ = "algoflash"
 __license__ = "MIT"
 __status__ = "developpement"
@@ -11,7 +11,7 @@ class Dol:
     HEADER_LEN = 0x100
     __header = None
     __data = None
-    __sections_info = None # can also identify text segments to improve resolve & search
+    __sections_info = None # can also identify text segments to improve search
     def __init__(self, path:Path):
         data = path.read_bytes()
         self.__header = data[:Dol.HEADER_LEN]
@@ -37,16 +37,23 @@ class Dol:
         offsets = []
         for i in range(len(self.__data) - len(bytecode) + 1):
             if self.__data[i:i+len(bytecode)] == bytecode:
-                offsets.append(self.resolve(i + Dol.HEADER_LEN))
+                offsets.append(self.resolve_img2virtual(i + Dol.HEADER_LEN))
         return offsets if len(offsets) > 0 else None
-    # Resolve a dol absolute offset to a loaded memory address
-    def resolve(self, offset:int):
+    # Resolve a dol absolute offset to a virtual memory address
+    def resolve_img2virtual(self, offset:int):
         memory_address = None
         for section_info in self.__sections_info:
             if offset >= section_info[0] and offset < section_info[0] + section_info[2]:
                 return section_info[1] + offset - section_info[0]
         raise Exception(f"Not found: {offset:08x}")
+    # Resolve a virtual memory address to a dol absolute offset
+    def resolve_virtual2img(self, address:int):
+        for section_info in self.__sections_info:
+            if address >= section_info[1] and address < section_info[1] + section_info[2]:
+                return section_info[0] + address - section_info[1]
+        raise Exception(f"Not found: {address:08x}")
     # search by lib function length
+    # identify functions using the bl graph and their bytecode length
 
 
 def parse_gnt(path:Path):
@@ -69,10 +76,12 @@ def parse_gnt(path:Path):
             asm_dict[current_label] += int(splited[4] + splited[5] + splited[6] + splited[7], 16).to_bytes(4, "big")
     return asm_dict
 
+dol = Dol(Path("boot.dol"))
+
+#print( f"{dol.resolve_virtual2img(0x80003258):08x}" )
 
 # https://github.com/doldecomp/gnt4/tree/master/asm/sysdolphin
-dol = Dol(Path("boot.dol"))
-for gnt_asm_file_path in Path("asm/gnt4").glob("*"):
+for gnt_asm_file_path in Path("asm/dvd").glob("*"):
     asm_dict = parse_gnt(gnt_asm_file_path)
     for key in asm_dict:
         offsets = None
@@ -82,3 +91,5 @@ for gnt_asm_file_path in Path("asm/gnt4").glob("*"):
             print(key, " ".join([f"{offset:08x}" for offset in offsets]))
         else:
             print(key, "None")
+"""
+"""
