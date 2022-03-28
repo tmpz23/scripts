@@ -403,13 +403,13 @@ class Hooks(idaapi.IDP_Hooks):
         return False
     
     # Can this be the start of a function? 
-    def may_be_func(self):
+    def may_be_func(self, state):
         if idaapi.cmd.itype >= idaapi.CUSTOM_CMD_ITYPE:
             return 100
         return 0
 
     # If we've identified the command as an Gekko PS instruction, it's good to go.
-    def is_sane_insn(self):
+    def is_sane_insn(self, no_crefs):
         if idaapi.cmd.itype >= idaapi.CUSTOM_CMD_ITYPE:
             return 1
         return 0
