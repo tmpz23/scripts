@@ -457,9 +457,10 @@ class gekkoPS(idaapi.plugin_t):
         if databaseHookState != HookState.index("kDefault"):
             g_HookState = databaseHookState
 
+        self.hooks = Hooks()
+        
         if g_HookState == HookState.index("kEnabled"):
             #hook_to_notification_point(HT_IDP, PluginExtensionCallback, NULL);
-            self.hooks = Hooks()
             self.hooks.hook()
             idaapi.msg("Nintendo GameCube Gekko CPU Extension "+GEKKO_VERSION+" is enabled\n")
             return idaapi.PLUGIN_KEEP
