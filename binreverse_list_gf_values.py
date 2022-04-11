@@ -6,9 +6,9 @@ from pathlib import Path
 # Create a folder named "pzz" and put in it all afs_data pzz files
 # Then run :
 # pzztool.py -bunpzz pzz pzzu
-# download "https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/data/NTSC_borgs.csv" and put the path in "CSV_PATH"
+# download "https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/data/NTSC_Borgs.csv" and put the path in "CSV_PATH"
 
-CSV_PATH =  "NTSC_borgs.csv"
+CSV_PATH =  "NTSC_Borgs.csv"
 TESTEDFILE_PATH_FORMAT = "pzzu/{0}/000C_{0}data.bin"
 FILE_MASK_PATH = "mask_same_bytes"
 
