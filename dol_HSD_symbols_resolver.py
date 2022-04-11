@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __author__ = "algoflash"
 __license__ = "MIT"
 __status__ = "developpement"
@@ -78,8 +78,15 @@ def parse_gnt(path:Path):
 
 dol = Dol(Path("boot.dol"))
 
-#print( f"{dol.resolve_virtual2img(0x80003258):08x}" )
+# Search the dol offset of a given virtual address:
+print( f"{dol.resolve_virtual2img(0x80003258):08x}" )
+# Search the virtual address of a given dol offset:
+print( f"{dol.resolve_img2virtual(0x1234):08x}" )
 
+# Search raw bytecode splited by chunks from parsing gnt4 already found labels & symbols
+# print virtual address translated from the dol when found to allow compare of the gnt4
+# identified labels
+"""
 # https://github.com/doldecomp/gnt4/tree/master/asm/sysdolphin
 for gnt_asm_file_path in Path("asm/dvd").glob("*"):
     asm_dict = parse_gnt(gnt_asm_file_path)
@@ -91,5 +98,4 @@ for gnt_asm_file_path in Path("asm/dvd").glob("*"):
             print(key, " ".join([f"{offset:08x}" for offset in offsets]))
         else:
             print(key, "None")
-"""
 """
