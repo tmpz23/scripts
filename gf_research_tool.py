@@ -4,7 +4,7 @@ import shutil
 from urllib import request
 
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __author__ = "algoflash"
 __license__ = "MIT"
 __status__ = "developpement"
@@ -52,11 +52,11 @@ blacklist_offsets = [
 ###############################################################
 # TOOLS PATHS
 ###############################################################
-# https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/pzztool.py
+# https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/pzztool/pzztool.py
 pzztool_path = Path("tools/pzztool.py")
-# https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/afstool.py
+# https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/afstool/afstool.py
 afstool_path = Path("tools/afstool.py")
-# https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool.py
+# https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool/gcmtool.py
 gcmtool_path = Path("tools/gcmtool.py")
 ###############################################################
 # Paths
@@ -100,9 +100,9 @@ class Dumper:
 ###############################################################
 def install_tools(tools_path):
     tools_path.mkdir(parents=True)
-    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/pzztool.py", tools_path / "pzztool.py")
-    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/afstool.py", tools_path / "afstool.py")
-    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool.py", tools_path / "gcmtool.py")
+    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/pzztool/pzztool.py", tools_path / "pzztool.py")
+    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/afstool/afstool.py", tools_path / "afstool.py")
+    request.urlretrieve("https://raw.githubusercontent.com/Virtual-World-RE/NeoGF/main/gcmtool/gcmtool.py", tools_path / "gcmtool.py")
 
 
 def install():
@@ -129,7 +129,7 @@ def install():
     config = ConfigParser(allow_no_value=True) # allow_no_value to allow adding comments
     config.optionxform = str # makes options case sensitive
     config.read(root_path / afs_unpack / 'sys' / 'afs_rebuild.conf')
-    config.set("Default", "# Documentation available here: https://github.com/Virtual-World-RE/NeoGF/blob/main/README.md#afs_rebuildconf--afs_rebuildcsv")
+    config.set("Default", "# Documentation available here: https://github.com/Virtual-World-RE/NeoGF/tree/main/afstool#afs_rebuildconf")
     config.set("Default", "files_rebuild_strategy", "index")
     config.set("FilenameDirectory", "toc_offset_of_fd_offset", "auto")
     config.set("FilenameDirectory", "fd_offset", "auto")
