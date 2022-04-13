@@ -2,7 +2,7 @@ import ctypes
 import idaapi
 
 
-__version__ = "1.1"
+__version__ = "1.2"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
@@ -40,6 +40,31 @@ def get_dol_header(li):
     fit = min(len(string), ctypes.sizeof(header))
     ctypes.memmove(ctypes.addressof(header), string, fit)
     return header
+
+
+# Get non-overlapping intervals from interval by removing intervals_to_remove
+# intervals_to_remove has to be sorted by left val
+# return [[a,b], ...] or None
+def remove_intervals_from_interval(interval, intervals_to_remove):
+    interval = interval[:]
+    result_intervals = []
+    for interval_to_remove in intervals_to_remove:
+        if interval_to_remove[1] < interval[0]: continue # end before
+        if interval_to_remove[0] > interval[1]: break # begin after
+
+        if interval_to_remove[0] <= interval[0]: # begin before
+            if interval_to_remove[1] >= interval[1]: # total overlap
+                return None
+            interval[0] = interval_to_remove[1] # begin truncate
+        elif interval_to_remove[1] >= interval[1]: # end truncate
+            interval[1] = interval_to_remove[0]
+            break
+        else: # middle truncate
+            result_intervals.append( [interval[0], interval_to_remove[0]] )
+            interval[0] = interval_to_remove[1]
+
+    return result_intervals + [interval]
+
 
 
 def section_sanity_check(offset, addr, size, file_len):
@@ -105,20 +130,22 @@ def load_file(li, neflags, fmt):
 
     flags = ADDSEG_NOTRUNC|ADDSEG_OR_DIE
 
+    sections_intervals = [] # used to split the bss
     for i in xrange(MaxCodeSection):
-        if header.text_sizes[i] == 0:
+        if header.text_offsets[i] == 0 or header.text_addresses[i] == 0 or header.text_sizes[i] == 0:
             continue
 
         addr = header.text_addresses[i]
         size = header.text_sizes[i]
         off = header.text_offsets[i]
 
+        sections_intervals.append( [addr, addr + size] )
+
         AddSegEx(addr, addr + size, 0, 1, saRelPara, scPub, flags)
         RenameSeg(addr, ".text{0}".format(i))
         SetSegmentType(addr, SEG_CODE)
         li.file2base(off, addr, addr + size, 0)
 
-    data_ranges = []
     for i in xrange(MaxDataSection):
         if header.data_sizes[i] == 0:
             continue
@@ -127,45 +154,28 @@ def load_file(li, neflags, fmt):
         size = header.data_sizes[i]
         off = header.data_offsets[i]
 
-        data_ranges.append( [addr, addr + size] )
+        sections_intervals.append( [addr, addr + size] )
 
         AddSegEx(addr, addr + size, 0, 1, saRelPara, scPub, flags)
         RenameSeg(addr, ".data{0}".format(i))
         SetSegmentType(addr, SEG_DATA)
         li.file2base(off, addr, addr + size, 0)
 
-    data_ranges.sort(key=lambda x: x[0])
+    sections_intervals.sort(key=lambda x: x[0])
     
     if header.bss_address:
         addr = header.bss_address
         size = header.bss_size
 
         # Get non-overlapping bss intervals
-        bss_range = [addr, addr + size]
-        bss_range_parts = []
-        for i in range(len(data_ranges)):
-            if bss_range[0] > data_ranges[i][1]:
-                if bss_range[1] <= data_ranges[i][1]: # total overlap
-                    bss_range = None
-                    break
-                bss_range[0] = data_ranges[i][1] # truncate beginning of bss
-            elif bss_range[0] <= data_ranges[i][0] and bss_range[1] > data_ranges[i][0]:
-                if bss_range[0] < data_ranges[i][0]: # truncate bss interval
-                    bss_range_parts.append( [bss_range[0], data_ranges[i][0]] )
-                
-                if data_ranges[i][1] >= bss_range[1]: # truncate end of the bss
-                    bss_range = None
-                    break
+        bss_intervals = remove_intervals_from_interval([addr, addr + size], sections_intervals)
 
-                bss_range[0] = data_ranges[i][1]
-
-        if bss_range != None:
-            bss_range_parts.append(bss_range)
-
-        for i in range(len(bss_range_parts)):
-            AddSegEx(bss_range_parts[i][0], bss_range_parts[i][1], 0, 1, saRelPara, scPub, flags)
-            RenameSeg(bss_range_parts[i][0], ".bss{0}".format(i))
-            SetSegmentType(bss_range_parts[i][0], SEG_BSS)
+        i = 0
+        for bss_interval in bss_intervals:
+            AddSegEx(bss_interval[0], bss_interval[1], 0, 1, saRelPara, scPub, flags)
+            RenameSeg(bss_interval[0], ".bss{0}".format(i))
+            SetSegmentType(bss_interval[0], SEG_BSS)
+            i += 1
 
     idaapi.add_entry(header.entry_point, header.entry_point, "start", 1)
 
