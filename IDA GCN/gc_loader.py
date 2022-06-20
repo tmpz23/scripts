@@ -2,9 +2,10 @@ import ctypes
 import idaapi
 import idc
 import os
+import struct
 
 
-__version__ = "1.4"
+__version__ = "1.5"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
@@ -51,8 +52,7 @@ class AskSectionsInfoForm(Form):
             'SDA_BASE':                 Form.NumericInput(tp=Form.FT_HEX),
             'SDA2_BASE':                Form.NumericInput(tp=Form.FT_HEX),
             'ARENA_START_ADDRESS':      Form.NumericInput(tp=Form.FT_HEX),
-            'ARENA_END_ADDRESS':        Form.NumericInput(tp=Form.FT_HEX),
-            'RESOLVE_SDA_SECTIONS':     Form.RadGroupControl( ("ENABLED", "DISABLED") )}
+            'ARENA_END_ADDRESS':        Form.NumericInput(tp=Form.FT_HEX)}
 
         content = "STARTITEM 0\n" + \
             "BUTTON CANCEL NONE\n" + \
@@ -65,7 +65,6 @@ class AskSectionsInfoForm(Form):
         content += "<Stack address      :{STACK_ADDRESS}> <Stack size                :{STACK_SIZE}>\n" + \
             "<__SDA_BASE__ (r13) address:{SDA_BASE}> <__SDA2_BASE__ (r2) address:{SDA2_BASE}>\n" + \
             "<ArenaStart address        :{ARENA_START_ADDRESS}> <ArenaEnd address          :{ARENA_END_ADDRESS}>\n" + \
-            "Auto resolve SDA sections  :<Enabled:{ENABLED}> <Disabled:{DISABLED}>{RESOLVE_SDA_SECTIONS}>\n" + \
             "Start Dolphin Emulator in debug mode and enable full logs on the logs options.\n" + \
             "ArenaStart & ArenaEnd -> Arena in dolphin OS logs during GameCube init. After __init_registers:\n" + \
             "__SDA_BASE__ = R13;\n" + \
@@ -91,7 +90,8 @@ class SectionsInfos:
     SDA2_BASE = None
     ARENA_START_ADDRESS = None
     ARENA_END_ADDRESS = None
-    RESOLVE_SDA_SECTIONS = None
+    ARENA_LO = None
+    ARENA_HI = None
     def __init__(self, form):
         if hasattr(form, "DOL_FILENAME"):
             self.DOL_FILENAME = form.DOL_FILENAME.value
@@ -101,7 +101,8 @@ class SectionsInfos:
         self.SDA2_BASE = form.SDA2_BASE.value & 0xFFFFFFFF
         self.ARENA_START_ADDRESS = form.ARENA_START_ADDRESS.value & 0xFFFFFFFF
         self.ARENA_END_ADDRESS = form.ARENA_END_ADDRESS.value & 0xFFFFFFFF
-        self.RESOLVE_SDA_SECTIONS = form.RESOLVE_SDA_SECTIONS.value
+        self.ARENA_LO = 0
+        self.ARENA_HI = 0
     def is_stack_valid(self):
         return 0x80001300 < self.STACK_ADDRESS <= 0x81800000 and self.STACK_SIZE > 0
     def is_arena_valid(self):
@@ -128,7 +129,7 @@ def remove_intervals_from_interval(interval, intervals_to_remove):
 
         if interval_to_remove[0] <= interval[0]: # begin before
             if interval_to_remove[1] >= interval[1]: # total overlap
-                return None
+                return result_intervals
             interval[0] = interval_to_remove[1] # begin truncate
         elif interval_to_remove[1] >= interval[1]: # end truncate
             interval[1] = interval_to_remove[0]
@@ -1278,6 +1279,7 @@ def create_sections(loader_input, sections_infos, fmt):
 
         # Get non-overlapping bss intervals
         bss_intervals = remove_intervals_from_interval([addr, addr + size], sections_intervals)
+        sections_intervals += bss_intervals
 
         i = 0
         for bss_interval in bss_intervals:
@@ -1292,16 +1294,60 @@ def create_sections(loader_input, sections_infos, fmt):
     if sections_infos.is_stack_valid():
         AddSegEx(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, sections_infos.STACK_ADDRESS, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
         RenameSeg(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, ".stack")
-        SetSegmentType(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, SEG_BSS)
+        SetSegmentType(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, SEG_DATA)
         if fmt == RAW_FORMAT_NAME:
+            sections_intervals.append( [sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, sections_infos.STACK_ADDRESS] )
             loader_input.file2base(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE & 0x01FFFFFF, sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, sections_infos.STACK_ADDRESS, 0)
 
     # If RAW parse OSGlobals
     # Add .AllocatedArenaLo and .AllocatedArenaHi
+    if fmt == RAW_FORMAT_NAME:
+        loader_input.seek(0x30)
+        sections_infos.ARENA_LO = struct.unpack(">I", loader_input.read(4))[0]
+        sections_infos.ARENA_HI = struct.unpack(">I", loader_input.read(4))[0]
+
+        if sections_infos.is_allocated_arenas_valids():
+            AddSegEx(sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_LO, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
+            RenameSeg(sections_infos.ARENA_START_ADDRESS, ".AllocatedArenaLo")
+            SetSegmentType(sections_infos.ARENA_START_ADDRESS, SEG_DATA)
+            loader_input.file2base(sections_infos.ARENA_START_ADDRESS & 0x01FFFFFF, sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_LO, 0)
+            sections_intervals.append( [sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_LO] )
+
+            AddSegEx(sections_infos.ARENA_HI, sections_infos.ARENA_END_ADDRESS, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
+            RenameSeg(sections_infos.ARENA_HI, ".AllocatedArenaHi")
+            SetSegmentType(sections_infos.ARENA_HI, SEG_DATA)
+            loader_input.file2base(sections_infos.ARENA_HI & 0x01FFFFFF, sections_infos.ARENA_HI, sections_infos.ARENA_END_ADDRESS, 0)
+            sections_intervals.append( [sections_infos.ARENA_HI, sections_infos.ARENA_END_ADDRESS] )
+
+        # resolve .sdata(2) .sbss(2) (.sdata next .sbss < SDATA) renaming existing sections
+
+        # Add .FST
+        fst_addr = struct.unpack(">I", loader_input.read(4))[0]
+        
+        AddSegEx(fst_addr, 0x81800000, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
+        RenameSeg(fst_addr, ".FST")
+        SetSegmentType(fst_addr, SEG_DATA)
+        loader_input.file2base(fst_addr & 0x01FFFFFF, fst_addr, 0x81800000, 0)
+        sections_intervals.append( [fst_addr, 0x81800000] )
+
     # else add Arena
-    # resolve .sdata(2) .sbss(2) (.sdata next .sbss < SDATA) renaming existing sections
-    # Add .FST
+    if not sections_infos.is_allocated_arenas_valids() and sections_infos.is_arena_valid():
+        AddSegEx(sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
+        RenameSeg(sections_infos.ARENA_START_ADDRESS, ".Arena")
+        SetSegmentType(sections_infos.ARENA_START_ADDRESS, SEG_DATA)
+        loader_input.file2base(sections_infos.ARENA_START_ADDRESS & 0x01FFFFFF, sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS, 0)
+        sections_intervals.append( [sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS] )
+
     # add unmapped sections and file2base
+    if fmt == RAW_FORMAT_NAME:
+        sections_intervals.sort(key=lambda x: x[0])
+        unmapped_intervals = remove_intervals_from_interval([0x80003100, 0x81800000], sections_intervals)
+        
+        for i, unmapped_interval in enumerate(unmapped_intervals):
+            AddSegEx(unmapped_interval[0], unmapped_interval[1], 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
+            RenameSeg(unmapped_interval[0], ".unmapped{0}".format(i))
+            SetSegmentType(unmapped_interval[0], SEG_DATA)
+            loader_input.file2base(unmapped_interval[0] & 0x01FFFFFF, unmapped_interval[0], unmapped_interval[1], 0)
 
     return idaapi.add_entry(header.entry_point, header.entry_point, "start", 1)
 
