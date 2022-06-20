@@ -1,20 +1,22 @@
 import ctypes
 import idaapi
 import idc
+import os
 
-__version__ = "1.3"
+
+__version__ = "1.4"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
 
 # https://forum.tuts4you.com/files/file/2222-rel-dol-loader/ (cpp)
 # https://github.com/P1kachu/idapython-dol-loader/blob/master/gc_wii_dol_loader.py (rewrited in python)
-# .data overlapping .bss sections are removed -> fix here spliting .bss in parts to keep .data sections
 # tested on a friend computer who buyed IDA 6.8 on windows
 
 
 DOL_HEADER_SIZE = 0x100
-DOL_FORMAT_NAME = "Nintendo GC DOL"
+DOL_FORMAT_NAME = "Nintendo GameCube dol"
+RAW_FORMAT_NAME = "Nintendo GameCube dol MRAM dump"
 MAX_CODE_SECTION = 7
 MAX_DATA_SECTION = 11
 
@@ -32,13 +34,81 @@ class DolHeader(ctypes.BigEndianStructure):
         ("entry_point", ctypes.c_uint)]
 
 
-def get_dol_header(li):
-    li.seek(0)
+def get_dol_header(file_input):
+    file_input.seek(0)
     header = DolHeader()
-    string = li.read(DOL_HEADER_SIZE)
+    string = file_input.read(DOL_HEADER_SIZE)
     fit = min(len(string), ctypes.sizeof(header))
     ctypes.memmove(ctypes.addressof(header), string, fit)
     return header
+
+
+class AskSectionsInfoForm(Form):
+    def __init__(self, fmt):
+        inputs = {
+            'STACK_ADDRESS':            Form.NumericInput(tp=Form.FT_HEX),
+            'STACK_SIZE':               Form.NumericInput(tp=Form.FT_HEX),
+            'SDA_BASE':                 Form.NumericInput(tp=Form.FT_HEX),
+            'SDA2_BASE':                Form.NumericInput(tp=Form.FT_HEX),
+            'ARENA_START_ADDRESS':      Form.NumericInput(tp=Form.FT_HEX),
+            'ARENA_END_ADDRESS':        Form.NumericInput(tp=Form.FT_HEX),
+            'RESOLVE_SDA_SECTIONS':     Form.RadGroupControl( ("ENABLED", "DISABLED") )}
+
+        content = "STARTITEM 0\n" + \
+            "BUTTON CANCEL NONE\n" + \
+            "Loader configuration.\n\n"
+
+        if fmt == RAW_FORMAT_NAME:
+            inputs['DOL_FILENAME'] = Form.FileInput(open=True, swidth=54)
+            content += "<#Required - dol file:{DOL_FILENAME}>\n"
+        
+        content += "<Stack address      :{STACK_ADDRESS}> <Stack size                :{STACK_SIZE}>\n" + \
+            "<__SDA_BASE__ (r13) address:{SDA_BASE}> <__SDA2_BASE__ (r2) address:{SDA2_BASE}>\n" + \
+            "<ArenaStart address        :{ARENA_START_ADDRESS}> <ArenaEnd address          :{ARENA_END_ADDRESS}>\n" + \
+            "Auto resolve SDA sections  :<Enabled:{ENABLED}> <Disabled:{DISABLED}>{RESOLVE_SDA_SECTIONS}>\n" + \
+            "Start Dolphin Emulator in debug mode and enable full logs on the logs options.\n" + \
+            "ArenaStart & ArenaEnd -> Arena in dolphin OS logs during GameCube init. After __init_registers:\n" + \
+            "__SDA_BASE__ = R13;\n" + \
+            "__SDA2_BASE__ = R2;\n" + \
+            "Stack address = R1;\n" + \
+            "Default Stack size = 0x10000 bytes."
+
+        Form.__init__(self, content, inputs)
+
+        # Compile (in order to populate the controls)
+        self.Compile()
+
+        self.STACK_SIZE.value = 0x10000
+        if fmt == RAW_FORMAT_NAME:
+            self.DOL_FILENAME.value = os.getcwd()
+
+
+class SectionsInfos:
+    DOL_FILENAME = None
+    STACK_ADDRESS = None
+    STACK_SIZE = None
+    SDA_BASE = None
+    SDA2_BASE = None
+    ARENA_START_ADDRESS = None
+    ARENA_END_ADDRESS = None
+    RESOLVE_SDA_SECTIONS = None
+    def __init__(self, form):
+        if hasattr(form, "DOL_FILENAME"):
+            self.DOL_FILENAME = form.DOL_FILENAME.value
+        self.STACK_ADDRESS = form.STACK_ADDRESS.value & 0xFFFFFFFF
+        self.STACK_SIZE = form.STACK_SIZE.value & 0xFFFFFFFF
+        self.SDA_BASE = form.SDA_BASE.value & 0xFFFFFFFF
+        self.SDA2_BASE = form.SDA2_BASE.value & 0xFFFFFFFF
+        self.ARENA_START_ADDRESS = form.ARENA_START_ADDRESS.value & 0xFFFFFFFF
+        self.ARENA_END_ADDRESS = form.ARENA_END_ADDRESS.value & 0xFFFFFFFF
+        self.RESOLVE_SDA_SECTIONS = form.RESOLVE_SDA_SECTIONS.value
+    def is_stack_valid(self):
+        return 0x80001300 < self.STACK_ADDRESS <= 0x81800000 and self.STACK_SIZE > 0
+    def is_arena_valid(self):
+        return 0x80001300 < self.ARENA_START_ADDRESS <= 0x81800000 and \
+            self.ARENA_START_ADDRESS < self.ARENA_END_ADDRESS <= 0x81800000
+    def is_allocated_arenas_valids(self):
+        return self.is_arena_valid() and self.ARENA_START_ADDRESS < self.ARENA_LO <= self.ARENA_HI < self.ARENA_END_ADDRESS
 
 
 #################################################################
@@ -96,21 +166,19 @@ def configure_compiler():
     idc.SetLongPrm(idc.INF_COMPILER, compiler_info)
 
 
-def create_dolphin_os_globals_sections(SECTIONS_FLAGS):
+def create_dolphin_os_globals_vars():
     'https://www.gc-forever.com/yagcd/chap4.html#sec4.2.1.1'
-    # Boot Info
-    AddSegEx(0x80000000, 0x80003100, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
-    RenameSeg(0x80000000, ".OSGlobals")
-    SetSegmentType(0x80000000, SEG_DATA)
 
     # DVD Disc ID
     MakeNameEx(0x80000000, "BI_GAMECODE", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x80000000, idaapi.FF_DWRD, 4, 0)
     MakeRptCmt(0x80000000, "Boot Info - DVD Disc ID: Gamecode.")
+    MakeStr(0x80000000, 0x80000004)
 
     MakeNameEx(0x80000004, "BI_COMPANY", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x80000004, idaapi.FF_WORD, 2, 0)
     MakeRptCmt(0x80000004, "Boot Info - DVD Disc ID: Company.")
+    MakeStr(0x80000004, 0x80000006)
 
     MakeNameEx(0x80000006, "BI_DISCID", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x80000006, idaapi.FF_BYTE, 1, 0)
@@ -119,6 +187,7 @@ def create_dolphin_os_globals_sections(SECTIONS_FLAGS):
     MakeNameEx(0x80000007, "BI_DVDVERSION", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x80000007, idaapi.FF_BYTE, 1, 0)
     MakeRptCmt(0x80000007, "Boot Info - DVD Disc ID: Version.")
+    MakeStr(0x80000004, 0x80000006)
 
     MakeNameEx(0x80000008, "BI_STREAMING", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x80000008, idaapi.FF_BYTE, 1, 0)
@@ -297,12 +366,12 @@ def create_dolphin_os_globals_sections(SECTIONS_FLAGS):
     MakeNameEx(0x80003000, "DOG_EXCEPTIONHANDLERVECTORS", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x80003000, idaapi.FF_DWRD, 4, 0)
     MakeRptCmt(0x80003000, "Dolphin OS Globals: exception handler vectors (from sdk libs & ipl).")
-    MakeArray(0xCC006480, 15)
+    MakeArray(0x80003000, 15)
 
     MakeNameEx(0x80003040, "DOG_EXTERNALINTERRUPTHANDLERVECTOR", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x80003040, idaapi.FF_DWRD, 4, 0)
     MakeRptCmt(0x80003040, "Dolphin OS Globals: external interrupt handler vectors (from sdk libs & ipl).")
-    MakeArray(0xCC006480, 25)
+    MakeArray(0x80003040, 25)
 
     MakeNameEx(0x800030c0, "DOG_UNKN0", idc.SN_CHECK | idaapi.SN_PUBLIC)
     MakeData(0x800030c0, idaapi.FF_DWRD, 4, 0)
@@ -393,14 +462,14 @@ def create_dolphin_os_globals_sections(SECTIONS_FLAGS):
     MakeRptCmt(0x800030fc, "Dolphin OS Globals: ?.")
 
 
-def create_hardware_registers_sections(SECTIONS_FLAGS):
+def create_hardware_registers_sections():
     """
     Create hardware registers as seen Here:
     * https://github.com/Cuyler36/Ghidra-GameCube-Loader/blob/master/src/main/java/gamecubeloader/common/SystemMemorySections.java
     * https://www.gc-forever.com/yagcd/chap4.html#sec4
     """
     # Command Processor Register
-    AddSegEx(0xCC000000, 0xCC000080, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC000000, 0xCC000080, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC000000, "CP")
     SetSegmentType(0xCC000000, SEG_BSS)
 
@@ -501,7 +570,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC00003e, "Command Processor: cp FIFO bp hi (R/W).")
 
     # Pixel Engine Register
-    AddSegEx(0xCC001000, 0xCC001100, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC001000, 0xCC001100, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC001000, "PE")
     SetSegmentType(0xCC001000, SEG_BSS)
 
@@ -534,7 +603,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC00100e, "Command Processor: PE Token ? (R/W). PE Token (asserted from last PE Token Interrupt).")
 
     # Video Interface Register
-    AddSegEx(0xCC002000, 0xCC002100, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC002000, 0xCC002100, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC002000, "VI")
     SetSegmentType(0xCC002000, SEG_BSS)
 
@@ -691,7 +760,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC00207c, "Video Interface: ? (unused?).")
 
     # Processor Interface Register
-    AddSegEx(0xCC003000, 0xCC003100, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC003000, 0xCC003100, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC003000, "PI")
     SetSegmentType(0xCC003000, SEG_BSS)
 
@@ -736,7 +805,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC00302c, "Processor Interface: ?.")
 
     # Memory Interface Register
-    AddSegEx(0xCC004000, 0xCC004080, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC004000, 0xCC004080, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC004000, "MI")
     SetSegmentType(0xCC004000, SEG_BSS)
 
@@ -865,7 +934,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC00405a, "Memory Interface: ? (R/?).")
 
     # Digital Signal Processor Register
-    AddSegEx(0xCC005000, 0xCC005200, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC005000, 0xCC005200, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC005000, "DSP")
     SetSegmentType(0xCC005000, SEG_BSS)
 
@@ -942,7 +1011,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC00503a, "Digital Signal Processor Interface: DMA Bytes left (R/?).")
 
     # DVD Interface Register
-    AddSegEx(0xCC006000, 0xCC006040, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC006000, 0xCC006040, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC006000, "DI")
     SetSegmentType(0xCC006000, SEG_BSS)
 
@@ -987,7 +1056,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC006024, "DVD Interface: DICFG - DI Configuration Register (R).")
 
     # Serial Interface Register
-    AddSegEx(0xCC006400, 0xCC006500, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC006400, 0xCC006500, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC006400, "SI")
     SetSegmentType(0xCC006400, SEG_BSS)
 
@@ -1061,7 +1130,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC006480, "Serial Interface: SI i/o buffer (access by word) (R/W).")
 
     # External Interface Register
-    AddSegEx(0xCC006800, 0xCC006840, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC006800, 0xCC006840, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC006800, "EXI")
     SetSegmentType(0xCC006800, SEG_BSS)
 
@@ -1126,7 +1195,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC006838, "External Interface: EXI2DATA - EXI Channel 2 Immediate Data (R/W).")
 
     # Audio Interface Register
-    AddSegEx(0xCC006C00, 0xCC006C20, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC006C00, 0xCC006C20, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC006C00, "AI")
     SetSegmentType(0xCC006C00, SEG_BSS)
 
@@ -1147,7 +1216,7 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC006C0c, "Audio Streaming Interface: AIIT - Audio Interface Interrupt Timing (R/W).")
 
     # Graphics FIFO Register
-    AddSegEx(0xCC008000, 0xCC008008, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+    AddSegEx(0xCC008000, 0xCC008008, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
     RenameSeg(0xCC008000, "GXFIFO")
     SetSegmentType(0xCC008000, SEG_BSS)
 
@@ -1156,8 +1225,14 @@ def create_hardware_registers_sections(SECTIONS_FLAGS):
     MakeRptCmt(0xCC008000, "Graphic display lists Interface. (R/W).")
 
 
-def create_dol_sections(li, SECTIONS_FLAGS):
-    header = get_dol_header(li)
+def create_sections(loader_input, sections_infos, fmt):
+    header = None
+    if fmt == DOL_FORMAT_NAME:
+        header = get_dol_header(loader_input)
+    else:
+        dol_file = open(sections_infos.DOL_FILENAME, "r")
+        header = get_dol_header(dol_file)
+        dol_file.close()
 
     sections_intervals = [] # used to split the bss
     for i in xrange(MAX_CODE_SECTION):
@@ -1170,10 +1245,13 @@ def create_dol_sections(li, SECTIONS_FLAGS):
 
         sections_intervals.append( [addr, addr + size] )
 
-        AddSegEx(addr, addr + size, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+        AddSegEx(addr, addr + size, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
         RenameSeg(addr, ".text{0}".format(i))
         SetSegmentType(addr, SEG_CODE)
-        li.file2base(off, addr, addr + size, 0)
+        if fmt == RAW_FORMAT_NAME:
+            loader_input.file2base(addr & 0x01FFFFFF, addr, addr + size, 0)
+        else:
+            loader_input.file2base(off, addr, addr + size, 0)
 
     for i in xrange(MAX_DATA_SECTION):
         if header.data_sizes[i] == 0:
@@ -1185,11 +1263,13 @@ def create_dol_sections(li, SECTIONS_FLAGS):
 
         sections_intervals.append( [addr, addr + size] )
 
-        AddSegEx(addr, addr + size, 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+        AddSegEx(addr, addr + size, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
         RenameSeg(addr, ".data{0}".format(i))
         SetSegmentType(addr, SEG_DATA)
-        li.file2base(off, addr, addr + size, 0)
-
+        if fmt == RAW_FORMAT_NAME:
+            loader_input.file2base(addr & 0x01FFFFFF, addr, addr + size, 0)
+        else:
+            loader_input.file2base(off, addr, addr + size, 0)
     sections_intervals.sort(key=lambda x: x[0])
     
     if header.bss_address:
@@ -1201,12 +1281,30 @@ def create_dol_sections(li, SECTIONS_FLAGS):
 
         i = 0
         for bss_interval in bss_intervals:
-            AddSegEx(bss_interval[0], bss_interval[1], 0, 1, idaapi.saRel32Bytes, scPub, SECTIONS_FLAGS)
+            AddSegEx(bss_interval[0], bss_interval[1], 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
             RenameSeg(bss_interval[0], ".bss{0}".format(i))
             SetSegmentType(bss_interval[0], SEG_BSS)
             i += 1
+            if fmt == RAW_FORMAT_NAME:
+                loader_input.file2base(bss_interval[0] & 0x01FFFFFF, bss_interval[0], bss_interval[1], 0)
 
-    idaapi.add_entry(header.entry_point, header.entry_point, "start", 1)
+    # Add Stack
+    if sections_infos.is_stack_valid():
+        AddSegEx(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, sections_infos.STACK_ADDRESS, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
+        RenameSeg(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, ".stack")
+        SetSegmentType(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, SEG_BSS)
+        if fmt == RAW_FORMAT_NAME:
+            loader_input.file2base(sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE & 0x01FFFFFF, sections_infos.STACK_ADDRESS - sections_infos.STACK_SIZE, sections_infos.STACK_ADDRESS, 0)
+
+    # If RAW parse OSGlobals
+    # Add .AllocatedArenaLo and .AllocatedArenaHi
+    # else add Arena
+    # resolve .sdata(2) .sbss(2) (.sdata next .sbss < SDATA) renaming existing sections
+    # Add .FST
+    # add unmapped sections and file2base
+
+    return idaapi.add_entry(header.entry_point, header.entry_point, "start", 1)
+
 
 #################################################################
 # API overload
@@ -1224,25 +1322,33 @@ def section_sanity_check(offset, addr, size, file_len):
     return True
 
 
-def accept_file(li, n):
-    valid_ep = False
-
+# n = 0 before load and 1 at load
+def accept_file(loader_input, n):
     if n:
         return False
 
-    li.seek(0, os.SEEK_END)
-    file_len = li.tell()
+    loader_input.seek(0, os.SEEK_END)
+    file_len = loader_input.tell()
+    if file_len == 0x01800000:
+        loader_input.seek(0x1c)
+        # GCN DVD Magic check
+        if loader_input.read(4) != b"\xc2\x33\x9f\x3d":
+            return False
+        else:
+            return RAW_FORMAT_NAME
+
     if file_len < DOL_HEADER_SIZE:
         return False
 
-    header = get_dol_header(li)
+    header = get_dol_header(loader_input)
+    valid_ep = False
 
     for i in xrange(MAX_CODE_SECTION):
         if not section_sanity_check(header.text_offsets[i], header.text_addresses[i], header.text_sizes[i], file_len):
             print("Error - Invalid text section.")
             return False
         section_limit = header.text_addresses[i] + header.text_sizes[i]
-        if header.entry_point >= header.text_addresses[i] and header.entry_point < section_limit:
+        if header.entry_point >= header.text_addresses[i] < section_limit:
             print("Entry point: {:08x}".format(header.entry_point))
             valid_ep = True
 
@@ -1262,15 +1368,44 @@ def accept_file(li, n):
 
 
 def load_file(loader_input, neflags, fmt):
-    if fmt != DOL_FORMAT_NAME:
+    if fmt not in [RAW_FORMAT_NAME, DOL_FORMAT_NAME]:
         Warning("Unknown format name: '{0}'".format(fmt))
+        return False
 
-    SECTIONS_FLAGS = ADDSEG_NOTRUNC|ADDSEG_OR_DIE
+    form = AskSectionsInfoForm(fmt)
+    # Execute the form
+    form.Execute()
 
+    sections_infos = SectionsInfos(form)
+    # Dispose the form
+    form.Free()
+
+    if fmt == RAW_FORMAT_NAME:
+        if sections_infos.DOL_FILENAME is None:
+            print("Error - dol file has to be specified.")
+            return False
+        try:
+            dol_file = open(sections_infos.DOL_FILENAME)
+            if accept_file(dol_file, 0) != DOL_FORMAT_NAME:
+                print("Error - Invalid dol file format.")
+                return False
+            dol_file.close()
+        except IOError:
+            print("Error - Invalid dol file path.")
+            return False
+    
     configure_compiler()
 
-    create_dolphin_os_globals_sections(SECTIONS_FLAGS)
-    create_hardware_registers_sections(SECTIONS_FLAGS)
-    create_dol_sections(loader_input, SECTIONS_FLAGS)
+    # Section
+    AddSegEx(0x80000000, 0x80003100, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
+    RenameSeg(0x80000000, ".OSGlobals")
+    SetSegmentType(0x80000000, SEG_DATA)
+
+    # Rebase before creating vars to allow MakeFunction handlers
+    if fmt == RAW_FORMAT_NAME:
+        loader_input.file2base(0, 0x80000000, 0x80003100, 0)
+
+    create_dolphin_os_globals_vars()
+    create_hardware_registers_sections()
     
-    return True
+    return create_sections(loader_input, sections_infos, fmt)
