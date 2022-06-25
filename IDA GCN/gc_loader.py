@@ -1,11 +1,12 @@
 import ctypes
 import idaapi
+import idautils
 import idc
 import os
 import struct
 
 
-__version__ = "1.5"
+__version__ = "1.6"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
@@ -110,6 +111,8 @@ class SectionsInfos:
             self.ARENA_START_ADDRESS < self.ARENA_END_ADDRESS <= 0x81800000
     def is_allocated_arenas_valids(self):
         return self.is_arena_valid() and self.ARENA_START_ADDRESS < self.ARENA_LO <= self.ARENA_HI < self.ARENA_END_ADDRESS
+    def is_sda_valid(self):  return 0x80003100 <= self.SDA_BASE <= 0x81800000
+    def is_sda2_valid(self): return 0x80003100 <= self.SDA2_BASE <= 0x81800000
 
 
 #################################################################
@@ -1235,6 +1238,7 @@ def create_sections(loader_input, sections_infos, fmt):
         header = get_dol_header(dol_file)
         dol_file.close()
 
+    # Add text sections
     sections_intervals = [] # used to split the bss
     for i in xrange(MAX_CODE_SECTION):
         if header.text_offsets[i] == 0 or header.text_addresses[i] == 0 or header.text_sizes[i] == 0:
@@ -1254,6 +1258,7 @@ def create_sections(loader_input, sections_infos, fmt):
         else:
             loader_input.file2base(off, addr, addr + size, 0)
 
+    # Add data sections
     for i in xrange(MAX_DATA_SECTION):
         if header.data_sizes[i] == 0:
             continue
@@ -1273,6 +1278,7 @@ def create_sections(loader_input, sections_infos, fmt):
             loader_input.file2base(off, addr, addr + size, 0)
     sections_intervals.sort(key=lambda x: x[0])
     
+    # Add splited bss
     if header.bss_address:
         addr = header.bss_address
         size = header.bss_size
@@ -1306,6 +1312,10 @@ def create_sections(loader_input, sections_infos, fmt):
         sections_infos.ARENA_LO = struct.unpack(">I", loader_input.read(4))[0]
         sections_infos.ARENA_HI = struct.unpack(">I", loader_input.read(4))[0]
 
+        print(sections_infos.is_allocated_arenas_valids())
+        print(sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS)
+        print(sections_infos.ARENA_LO, sections_infos.ARENA_HI)
+
         if sections_infos.is_allocated_arenas_valids():
             AddSegEx(sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_LO, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
             RenameSeg(sections_infos.ARENA_START_ADDRESS, ".AllocatedArenaLo")
@@ -1318,8 +1328,6 @@ def create_sections(loader_input, sections_infos, fmt):
             SetSegmentType(sections_infos.ARENA_HI, SEG_DATA)
             loader_input.file2base(sections_infos.ARENA_HI & 0x01FFFFFF, sections_infos.ARENA_HI, sections_infos.ARENA_END_ADDRESS, 0)
             sections_intervals.append( [sections_infos.ARENA_HI, sections_infos.ARENA_END_ADDRESS] )
-
-        # resolve .sdata(2) .sbss(2) (.sdata next .sbss < SDATA) renaming existing sections
 
         # Add .FST
         fst_addr = struct.unpack(">I", loader_input.read(4))[0]
@@ -1338,7 +1346,7 @@ def create_sections(loader_input, sections_infos, fmt):
         loader_input.file2base(sections_infos.ARENA_START_ADDRESS & 0x01FFFFFF, sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS, 0)
         sections_intervals.append( [sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS] )
 
-    # add unmapped sections and file2base
+    # add unmapped sections and rebase
     if fmt == RAW_FORMAT_NAME:
         sections_intervals.sort(key=lambda x: x[0])
         unmapped_intervals = remove_intervals_from_interval([0x80003100, 0x81800000], sections_intervals)
@@ -1348,6 +1356,31 @@ def create_sections(loader_input, sections_infos, fmt):
             RenameSeg(unmapped_interval[0], ".unmapped{0}".format(i))
             SetSegmentType(unmapped_interval[0], SEG_DATA)
             loader_input.file2base(unmapped_interval[0] & 0x01FFFFFF, unmapped_interval[0], unmapped_interval[1], 0)
+
+    # resolve .sdata(2) .sbss(2) (.sdata next .sbss < SDA) renaming existing sections
+    seg_start_ea_list = sorted(list(idautils.Segments()))
+    if sections_infos.is_sda_valid():
+        for i in range( len(seg_start_ea_list) ):
+            if sections_infos.SDA_BASE - 0x8000 == seg_start_ea_list[i]:
+                if GetSegmentAttr(seg_start_ea_list[i], idc.SEGATTR_TYPE) != idaapi.SEG_DATA:
+                    break
+                idc.RenameSeg(seg_start_ea_list[i], ".sdata")
+                if len(seg_start_ea_list) > i + 1 and \
+                    GetSegmentAttr(seg_start_ea_list[i + 1], idc.SEGATTR_TYPE) == idaapi.SEG_BSS and \
+                    seg_start_ea_list[i + 1] < sections_infos.SDA_BASE + 0x8000:
+                    idc.RenameSeg(seg_start_ea_list[i + 1], ".sbss")
+                break
+    if sections_infos.is_sda2_valid():
+        for i in range( len(seg_start_ea_list) ):
+            if sections_infos.SDA2_BASE - 0x8000 == seg_start_ea_list[i]:
+                if GetSegmentAttr(seg_start_ea_list[i], idc.SEGATTR_TYPE) != idaapi.SEG_DATA:
+                    break
+                idc.RenameSeg(seg_start_ea_list[i], ".sdata2")
+                if len(seg_start_ea_list) > i + 1 and \
+                    GetSegmentAttr(seg_start_ea_list[i + 1], idc.SEGATTR_TYPE) == idaapi.SEG_BSS and \
+                    seg_start_ea_list[i + 1] < sections_infos.SDA2_BASE + 0x8000:
+                    idc.RenameSeg(seg_start_ea_list[i + 1], ".sbss2")
+                break
 
     return idaapi.add_entry(header.entry_point, header.entry_point, "start", 1)
 
