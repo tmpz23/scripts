@@ -6,7 +6,7 @@ import os
 import struct
 
 
-__version__ = "1.6"
+__version__ = "1.7"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
@@ -365,6 +365,8 @@ def create_dolphin_os_globals_vars():
     MakeFunction(0x80001300)
     SetFunctionCmt(0x80001300, "IABR Interrupt.", 0)
     MakeNameEx(0x80001700, "thermal_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Thermal Interrupt
+    MakeFunction(0x80001700)
+    SetFunctionCmt(0x80001700, "Thermal Interrupt.", 0)
 
     # Dolphin-OS globals
     MakeNameEx(0x80003000, "DOG_EXCEPTIONHANDLERVECTORS", idc.SN_CHECK | idaapi.SN_PUBLIC)
