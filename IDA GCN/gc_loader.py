@@ -6,7 +6,7 @@ import os
 import struct
 
 
-__version__ = "1.7"
+__version__ = "1.8"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
@@ -1345,8 +1345,9 @@ def create_sections(loader_input, sections_infos, fmt):
         AddSegEx(sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS, 0, 1, idaapi.saRel32Bytes, scPub, ADDSEG_NOTRUNC | ADDSEG_OR_DIE)
         RenameSeg(sections_infos.ARENA_START_ADDRESS, ".Arena")
         SetSegmentType(sections_infos.ARENA_START_ADDRESS, SEG_DATA)
-        loader_input.file2base(sections_infos.ARENA_START_ADDRESS & 0x01FFFFFF, sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS, 0)
-        sections_intervals.append( [sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS] )
+        if fmt == RAW_FORMAT_NAME:
+            loader_input.file2base(sections_infos.ARENA_START_ADDRESS & 0x01FFFFFF, sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS, 0)
+            sections_intervals.append( [sections_infos.ARENA_START_ADDRESS, sections_infos.ARENA_END_ADDRESS] )
 
     # add unmapped sections and rebase
     if fmt == RAW_FORMAT_NAME:
