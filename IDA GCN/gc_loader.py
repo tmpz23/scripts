@@ -6,7 +6,7 @@ import os
 import struct
 
 
-__version__ = "1.8"
+__version__ = "1.9"
 __license__ = "The GNU General Public License (GPL) Version 2, June 1991"
 __status__ = "developpement"
 
@@ -325,46 +325,59 @@ def create_dolphin_os_globals_vars():
     MakeRptCmt(0x800000fc, "Dolphin OS Globals: CPU Clock Speed, 486 MHz (=0x1cf7c580, 486000000).")
 
     # Exception Handlers
-    MakeNameEx(0x80000100, "system_reset_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # System Reset Interrupt
+    MakeNameEx(0x80000100, "SYS_INT_Reset", idc.SN_CHECK | idaapi.SN_PUBLIC) # System Reset Interrupt
     MakeFunction(0x80000100)
     SetFunctionCmt(0x80000100, "System Reset Interrupt.", 0)
-    MakeNameEx(0x80000200, "machine_check_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Machine Check Interrupt
+    
+    MakeNameEx(0x80000200, "SYS_INT_MachineCheck", idc.SN_CHECK | idaapi.SN_PUBLIC) # Machine Check Interrupt
     MakeFunction(0x80000200)
     SetFunctionCmt(0x80000200, "Machine Check Interrupt.", 0)
-    MakeNameEx(0x80000300, "DSI_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # DSI Interrupt
+    
+    MakeNameEx(0x80000300, "SYS_INT_DSI", idc.SN_CHECK | idaapi.SN_PUBLIC) # DSI Interrupt
     MakeFunction(0x80000300)
     SetFunctionCmt(0x80000300, "DSI Interrupt.", 0)
-    MakeNameEx(0x80000400, "ISI_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # ISI Interrupt
+    
+    MakeNameEx(0x80000400, "SYS_INT_ISI", idc.SN_CHECK | idaapi.SN_PUBLIC) # ISI Interrupt
     MakeFunction(0x80000400)
     SetFunctionCmt(0x80000400, "ISI Interrupt.", 0)
-    MakeNameEx(0x80000500, "external_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # External Interrupt
+    
+    MakeNameEx(0x80000500, "SYS_INT_External", idc.SN_CHECK | idaapi.SN_PUBLIC) # External Interrupt
     MakeFunction(0x80000500)
     SetFunctionCmt(0x80000500, "External Interrupt.", 0)
-    MakeNameEx(0x80000600, "alignment_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Alignment Interrupt
+    
+    MakeNameEx(0x80000600, "SYS_INT_Alignment", idc.SN_CHECK | idaapi.SN_PUBLIC) # Alignment Interrupt
     MakeFunction(0x80000600)
     SetFunctionCmt(0x80000600, "Alignment Interrupt.", 0)
-    MakeNameEx(0x80000700, "program_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Program Interrupt
+    
+    MakeNameEx(0x80000700, "SYS_INT_Program", idc.SN_CHECK | idaapi.SN_PUBLIC) # Program Interrupt
     MakeFunction(0x80000700)
     SetFunctionCmt(0x80000700, "Program Interrupt.", 0)
-    MakeNameEx(0x80000800, "FP_unavailable_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # FP unavailable Interrupt
+    
+    MakeNameEx(0x80000800, "SYS_INT_FPUnavailable", idc.SN_CHECK | idaapi.SN_PUBLIC) # FP unavailable Interrupt
     MakeFunction(0x80000800)
     SetFunctionCmt(0x80000800, "FP unavailable Interrupt.", 0)
-    MakeNameEx(0x80000900, "decrementer_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Decrementer Interrupt
+    
+    MakeNameEx(0x80000900, "SYS_INT_Decrementer", idc.SN_CHECK | idaapi.SN_PUBLIC) # Decrementer Interrupt
     MakeFunction(0x80000900)
     SetFunctionCmt(0x80000900, "Decrementer Interrupt.", 0)
-    MakeNameEx(0x80000C00, "system_call_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # System Call Interrupt
+    
+    MakeNameEx(0x80000C00, "SYS_INT_Syscall", idc.SN_CHECK | idaapi.SN_PUBLIC) # System Call Interrupt
     MakeFunction(0x80000C00)
     SetFunctionCmt(0x80000C00, "System Call Interrupt.", 0)
-    MakeNameEx(0x80000d00, "trace_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Trace Interrupt
+    
+    MakeNameEx(0x80000d00, "SYS_INT_Trace", idc.SN_CHECK | idaapi.SN_PUBLIC) # Trace Interrupt
     MakeFunction(0x80000d00)
     SetFunctionCmt(0x80000d00, "Trace Interrupt.", 0)
-    MakeNameEx(0x80000f00, "performance_monitor_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Performance Monitor Interrupt
+    
+    MakeNameEx(0x80000f00, "SYS_INT_Perfmon", idc.SN_CHECK | idaapi.SN_PUBLIC) # Performance Monitor Interrupt
     MakeFunction(0x80000f00)
     SetFunctionCmt(0x80000f00, "Performance Monitor Interrupt.", 0)
-    MakeNameEx(0x80001300, "IABR_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # IABR Interrupt
+    
+    MakeNameEx(0x80001300, "SYS_INT_IABR", idc.SN_CHECK | idaapi.SN_PUBLIC) # IABR Interrupt
     MakeFunction(0x80001300)
     SetFunctionCmt(0x80001300, "IABR Interrupt.", 0)
-    MakeNameEx(0x80001700, "thermal_interrupt", idc.SN_CHECK | idaapi.SN_PUBLIC) # Thermal Interrupt
+    
+    MakeNameEx(0x80001700, "SYS_INT_Thermal", idc.SN_CHECK | idaapi.SN_PUBLIC) # Thermal Interrupt
     MakeFunction(0x80001700)
     SetFunctionCmt(0x80001700, "Thermal Interrupt.", 0)
 
