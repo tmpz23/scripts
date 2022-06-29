@@ -1,0 +1,232 @@
+@echo off
+
+rem Taches planifiées
+schtasks /Change /TN "\Microsoft\Windows\Autochk\Proxy" /DISABLE
+schtasks /Change /TN "\Microsoft\Windows\Application Experience\AitAgent" /DISABLE >nul
+schtasks /Change /TN "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" /DISABLE
+schtasks /Change /TN "\Microsoft\Windows\Application Experience\ProgramDataUpdater" /DISABLE >nul
+schtasks /Change /TN "\Microsoft\Windows\Customer Experience Improvement Program\BthSQM" /DISABLE >nul
+schtasks /Change /TN "\Microsoft\Windows\Customer Experience Improvement Program\Consolidator" /DISABLE >nul
+schtasks /Change /TN "\Microsoft\Windows\Customer Experience Improvement Program\KernelCeipTask" /DISABLE >nul
+schtasks /Change /TN "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" /DISABLE >nul
+schtasks /Change /TN "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector" /DISABLE >nul
+schtasks /Change /TN "\Lenovo\Lenovo Customer Feedback Program" /DISABLE
+schtasks /Change /TN "\Lenovo\Lenovo Customer Feedback Program 64" /DISABLE
+schtasks /Change /TN "\Lenovo\Lenovo Customer Feedback Program 64 35" /DISABLE
+schtasks /Change /TN "\TVT\LenovoWERMonitor" /DISABLE
+schtasks /Change /TN "\WPD\SqmUpload_S-1-5-21-2772437481-3276237408-2901849703-1000" /DISABLE >nul
+
+rem SmartScreen
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System" /v EnableSmartScreen /t REG_DWORD /d 0 /f
+
+rem IP automatiquement envoyee à Microsoft
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NLaSvc\Parameters\Internet" /v EnableActiveProbing /t REG_DWORD /d 0 /f
+
+rem Télémétrie Win7-8
+start /w wusa.exe /uninstall /kb:3075249 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3080149 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3021917 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3022345 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3068708 /quiet /norestart
+start /w wusa.exe /uninstall /kb:2902907 /quiet /norestart
+start /w wusa.exe /uninstall /kb:2976987 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3075853 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3065987 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3050265 /quiet /norestart
+
+rem Mise à jour vers windows 10
+start /w wusa.exe /uninstall /kb:3044374 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3035583 /quiet /norestart
+start /w wusa.exe /uninstall /kb:2990214 /quiet /norestart
+start /w wusa.exe /uninstall /kb:2952664 /quiet /norestart
+
+rem Validation de licence
+start /w wusa.exe /uninstall /kb:971033 /quiet /norestart
+
+rem desactivation des tests de perfs
+schtasks /Change /TN "\Microsoft\Windows\Maintenance\WinSAT" /DISABLE
+
+rem desactivation des noms courts
+fsutil behavior set disable8dot3 1
+
+rem desactivation de l'hiberfile
+powercfg /hibernate off
+
+rem http://assiste.com/DWS_Destroy_Windows_Spying.html#DWS_Destroy_Windows_Spying_05
+start /w wusa.exe /uninstall /kb:3015249 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3012973 /quiet /norestart
+start /w wusa.exe /uninstall /kb:2977759 /quiet /norestart
+start /w wusa.exe /uninstall /kb:2976978 /quiet /norestart
+start /w wusa.exe /uninstall /kb:2922324 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3083324 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3083325 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3088195 /quiet /norestart
+start /w wusa.exe /uninstall /kb:3083710 /quiet /norestart
+
+
+rem Désactivation des services inutiles
+sc config "hidserv" start= disabled
+sc stop "hidserv"
+
+sc config "napagent" start= disabled
+sc stop "napagent"
+
+sc config "iphlpsvc" start= disabled
+sc stop "iphlpsvc"
+
+sc config "lmhosts" start= disabled
+sc stop "lmhosts"
+
+sc config "PeerDistSvc" start= disabled
+sc stop "PeerDistSvc"
+
+sc config "SensrSvc" start= disabled
+sc stop "SensrSvc"
+
+sc config "SCardSvr" start= disabled
+sc stop "SCardSvr"
+
+sc config "TrkWks" start= disabled
+sc stop "TrkWks"
+
+sc config "SessionEnv" start= disabled
+sc stop "SessionEnv"
+
+sc config "UI0Detect" start= disabled
+sc stop "UI0Detect"
+
+sc config "DiagTrack" start= disabled
+sc stop "DiagTrack"
+
+sc config "IPBusEnum" start= disabled
+sc stop "IPBusEnum"
+
+sc config "QWAVE" start= disabled
+sc stop "QWAVE"
+
+sc config "CscService" start= disabled
+sc stop "CscService"
+
+sc config "WinRM" start= disabled
+sc stop "WinRM"
+
+sc config "AppMgmt" start= disabled
+sc stop "AppMgmt"
+
+sc config "hkmsvc" start= disabled
+sc stop "hkmsvc"
+
+sc config "p2pimsvc" start= disabled
+sc stop "p2pimsvc"
+
+sc config "VaultSvc" start= disabled
+sc stop "VaultSvc"
+
+sc config "p2psvc" start= disabled
+sc stop "p2psvc"
+
+sc config "fdPHost" start= disabled
+sc stop "fdPHost"
+
+sc config "WdiSystemHost" start= disabled
+sc stop "WdiSystemHost"
+
+sc config "SNMPTRAP" start= disabled
+sc stop "SNMPTRAP"
+
+sc config "RpcLocator" start= disabled
+sc stop "RpcLocator"
+
+sc config "lltdsvc" start= disabled
+sc stop "lltdsvc"
+
+sc config "Netlogon" start= disabled
+sc stop "Netlogon"
+
+sc config "WPCSvc" start= disabled
+sc stop "WPCSvc"
+
+sc config "wercplsupport" start= disabled
+sc stop "wercplsupport"
+
+sc config "AxInstSV" start= disabled
+sc stop "AxInstSV"
+
+sc config "CertPropSvc" start= disabled
+sc stop "CertPropSvc"
+
+sc config "PNRPsvc" start= disabled
+sc stop "PNRPsvc"
+
+sc config "FDResPub" start= disabled
+sc stop "FDResPub"
+
+sc config "UmRdpService" start= disabled
+sc stop "UmRdpService"
+
+sc config "RemoteRegistry" start= disabled
+sc stop "RemoteRegistry"
+
+sc config "WbioSrvc" start= disabled
+sc stop "WbioSrvc"
+
+sc config "BDESVC" start= disabled
+sc stop "BDESVC"
+
+sc config "WwanSvc" start= disabled
+sc stop "WwanSvc"
+
+sc config "PcaSvc" start= disabled
+sc stop "PcaSvc"
+
+sc config "ALG" start= disabled
+sc stop "ALG"
+
+sc config "bthserv" start= disabled
+sc stop "bthserv"
+
+sc config "PNRPAutoReg" start= disabled
+sc stop "PNRPAutoReg"
+
+sc config "WerSvc" start= disabled
+sc stop "WerSvc"
+
+sc config "DPS" start= disabled
+sc stop "DPS"
+
+sc config "WdiServiceHost" start= disabled
+sc stop "WdiServiceHost"
+
+sc config "MSiSCSI" start= disabled
+sc stop "MSiSCSI"
+
+sc config "TabletInputService" start= disabled
+sc stop "TabletInputService"
+
+sc config "TermService" start= disabled
+sc stop "TermService"
+
+sc config "SCPolicySvc" start= disabled
+sc stop "SCPolicySvc"
+
+sc config "WcsPlugInService" start= disabled
+sc stop "WcsPlugInService"
+
+sc config "TapiSrv" start= disabled
+sc stop "TapiSrv"
+
+sc config "WebClient" start= disabled
+sc stop "WebClient"
+
+sc config "idsvc" start= disabled
+sc stop "idsvc"
+
+sc config "wcncsvc" start= disabled
+sc stop "wcncsvc"
+
+sc config "WSearch" start= disabled
+sc stop "WSearch"
+
+sc config "wuauserv" start= demand
+sc stop "wuauserv"
+
