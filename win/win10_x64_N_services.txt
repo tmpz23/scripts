@@ -1,0 +1,718 @@
+REM @echo off
+REM auto | demand | disabled | delayed-auto
+
+REM default start= demand
+sc config "UserDataSvc" start= disabled
+sc stop "UserDataSvc"
+
+REM default start= demand
+sc config "AarSvc" start= disabled
+sc stop "AarSvc"
+
+REM CaptureService_5b1dd start= demand
+sc config "CaptureService" start= disabled
+sc stop "CaptureService"
+
+REM DeviceAssociationBrokerSvc_5b1dd start= demand
+sc config "DeviceAssociationBrokerSvc" start= disabled
+sc stop "DeviceAssociationBrokerSvc"
+
+REM DevicePickerUserSvc_5b1dd start= demand
+sc config "DevicePickerUserSvc" start= disabled
+sc stop "DevicePickerUserSvc"
+
+REM PimIndexMaintenanceSvc_5b1dd start= demand
+sc config "PimIndexMaintenanceSvc" start= disabled
+sc stop "PimIndexMaintenanceSvc"
+
+REM OneSyncSvc_5b1dd start= auto
+sc config "OneSyncSvc" start= disabled
+sc stop "OneSyncSvc"
+
+REM MessagingService_5b1dd start= demand
+sc config "MessagingService" start= disabled
+sc stop "MessagingService"
+
+REM DevicesFlowUserSvc_5b1dd start= demand
+sc config "DevicesFlowUserSvc" start= disabled
+sc stop "DevicesFlowUserSvc"
+
+REM PrintWorkflowUserSvc_5b1dd start= demand
+sc config "PrintWorkflowUserSvc" start= disabled
+sc stop "PrintWorkflowUserSvc"
+
+REM BluetoothUserService_5b1dd start= demand
+sc config "BluetoothUserService" start= disabled
+sc stop "BluetoothUserService"
+
+REM CDPUserSvc_5b1dd start= auto
+sc config "CDPUserSvc" start= disabled
+sc stop "CDPUserSvc"
+
+REM BcastDVRUserService_5b1dd start= demand
+sc config "BcastDVRUserService" start= disabled
+sc stop "BcastDVRUserService"
+
+REM WpnUserService_5b1dd start= auto
+sc config "WpnUserService" start= disabled
+sc stop "WpnUserService"
+
+REM UnistoreSvc_5b1dd start= demand
+sc config "UnistoreSvc" start= disabled
+sc stop "UnistoreSvc"
+
+
+REM sppsvc start= auto
+REM Protection logicielle
+sc config "sppsvc" start= demand
+
+REM EntAppSvc start= demand
+REM Service de gestion des applications d'entreprise
+sc config "EntAppSvc" start= disabled
+sc stop "EntAppSvc"
+
+REM ClipSVC start= demand
+REM Service de licences de client
+sc config "ClipSVC" start= disabled
+sc stop "ClipSVC"
+
+
+REM --------------------------------------------------------------
+REM changing rules on previous services seem's to be impossible 
+REM --------------------------------------------------------------
+
+
+REM default start= demand
+sc config "stisvc" start= demand
+
+REM PolicyAgent start= auto / Déclencher le démarrage
+REM Power start= auto
+REM RpcSs start= auto
+REM COMSysApp start= demand
+
+REM default auto
+sc config "iphlpsvc" start= disabled
+sc stop "iphlpsvc"
+
+REM default start= demand / Déclencher le démarrage
+sc config "lmhosts" start= disabled
+sc stop "lmhosts"
+
+REM NcaSvc start= demand / Déclencher le démarrage
+REM wlidsvc start= disabled
+REM Audiosrv start= auto
+REM NaturalAuthentication start= disabled
+
+REM PeerDistSvc start= demand
+sc config "PeerDistSvc" start= disabled
+sc stop "PeerDistSvc"
+
+REM SCardSvr start= demand
+sc config "SCardSvr" start= disabled
+sc stop "SCardSvr"
+
+REM wmiApSrv start= demand
+REM wscsvc start= auto
+REM VSS start= demand
+REM gpsvc start= auto
+
+REM TrkWks start= auto
+sc config "TrkWks" start= disabled
+sc stop "TrkWks"
+
+REM Dhcp start= auto
+REM Dnscache start= auto
+REM Wecsvc start= demand
+REM dot3svc start= demand
+REM NcdAutoSetup start= demand
+
+REM SessionEnv start= demand
+sc config "SessionEnv" start= disabled
+sc stop "SessionEnv"
+
+REM NlaSvc start= auto
+REM Netman start= demand
+REM ConsentUxUserSvc_5b1dd start= demand
+
+REM DusmSvc start= auto
+sc config "DusmSvc" start= disabled
+sc stop "DusmSvc"
+
+REM NgcCtnrSvc start= demand
+
+REM WpcMonSvc start= demand
+sc config "WpcMonSvc" start= disabled
+sc stop "WpcMonSvc"
+
+REM MSDTC start= demand
+REM CoreMessagingRegistrar start= auto
+REM CredentialEnrollmentManagerUserSvc_5b1dd start= demand
+
+REM SSDPSRV start= demand
+sc config "SSDPSRV" start= disabled
+sc stop "SSDPSRV"
+
+REM ShellHWDetection start= auto
+
+
+REM diagsvc start= demand
+sc config "diagsvc" start= disabled
+sc stop "diagsvc"
+
+REM DialogBlockingService start= disabled
+REM vds start= demand
+
+REM WiaRpc start= demand
+
+REM QWAVE start= demand
+sc config "QWAVE" start= disabled
+sc stop "QWAVE"
+
+REM DiagTrack  start= auto
+sc config "DiagTrack" start= disabled
+sc stop "DiagTrack"
+
+REM PrintNotify start= demand
+REM CscService start= demand
+REM MsKeyboardFilter start= disabled
+REM swprv start= demand
+REM AudioEndpointBuilder start= auto
+
+REM WinRM start= demand
+sc config "WinRM" start= disabled
+sc stop "WinRM"
+
+REM AppMgmt start= demand
+sc config "AppMgmt" start= disabled
+sc stop "AppMgmt"
+
+REM TieringEngineService start= demand
+
+REM p2pimsvc start= demand
+sc config "p2pimsvc" start= disabled
+sc stop "p2pimsvc"
+
+REM VaultSvc start= demand
+sc config "VaultSvc" start= disabled
+sc stop "VaultSvc"
+
+REM DsmSvc start= demand
+
+REM XblAuthManager start= demand
+sc config "XblAuthManager" start= disabled
+sc stop "XblAuthManager"
+
+REM SamSs start= auto
+
+REM TokenBroker start= demand
+sc config "TokenBroker" start= disabled
+sc stop "TokenBroker"
+
+REM LSM start= auto
+
+REM MapsBroker start= auto
+sc config "MapsBroker" start= disabled
+sc stop "MapsBroker"
+
+REM RasAuto start= demand
+sc config "RasAuto" start= disabled
+sc stop "RasAuto"
+
+REM RasMan start= auto
+sc config "RasMan" start= disabled
+sc stop "RasMan"
+
+REM Wcmsvc start= auto
+REM UserManager start= auto
+
+REM SEMgrSvc start= demand
+sc config "SEMgrSvc" start= disabled
+sc stop "SEMgrSvc"
+
+REM GraphicsPerfSvc start= demand
+sc config "GraphicsPerfSvc" start= disabled
+sc stop "GraphicsPerfSvc"
+
+REM p2psvc start= demand
+
+REM autotimesvc start= demand
+sc config "autotimesvc" start= disabled
+sc stop "autotimesvc"
+
+REM PerfHost start= demand
+REM upnphost start= demand
+
+REM fdPHost start= demand
+sc config "fdPHost" start= disabled
+sc stop "fdPHost"
+
+REM WdiSystemHost start= demand
+sc config "WdiSystemHost" start= disabled
+sc stop "WdiSystemHost"
+
+REM AppIDSvc start= demand
+REM Appinfo start= demand
+REM Winmgmt start= auto
+REM InstallService start= demand
+
+REM vmicguestinterface start= demand
+sc config "vmicguestinterface" start= disabled
+sc stop "vmicguestinterface"
+
+REM SNMPTRAP start= demand
+sc config "SNMPTRAP" start= disabled
+sc stop "SNMPTRAP"
+
+REM KeyIso start= demand
+
+REM XblGameSave start= demand
+sc config "XblGameSave" start= disabled
+sc stop "XblGameSave"
+
+REM EventLog start= auto
+REM pla start= demand
+REM DcomLaunch start= auto
+
+REM RpcLocator start= demand
+sc config "RpcLocator" start= disabled
+sc stop "RpcLocator"
+
+REM lltdsvc start= demand
+sc config "lltdsvc" start= disabled
+sc stop "lltdsvc"
+
+REM RpcEptMapper start= auto
+
+REM UsoSvc start= auto
+sc config "UsoSvc" start= demand
+
+REM AppVClient start= disabled
+
+REM MicrosoftEdgeElevationService start= demand
+sc config "MicrosoftEdgeElevationService" start= disabled
+sc stop "MicrosoftEdgeElevationService"
+
+REM edgeupdate start= auto
+sc config "edgeupdate" start= disabled
+sc stop "edgeupdate"
+
+REM edgeupdatem start= demand
+sc config "edgeupdatem" start= disabled
+sc stop "edgeupdatem"
+
+REM NgcSvc start= demand
+REM uhssvc start= disabled
+REM embeddedmode start= demand
+REM IKEEXT start= demand
+REM BFE start= auto
+
+REM MozillaMaintenance start= disabled
+sc config "MozillaMaintenance" start= disabled
+sc stop "MozillaMaintenance"
+
+REM Netlogon start= demand
+sc config "Netlogon" start= disabled
+sc stop "Netlogon"
+
+REM defragsvc start= demand
+sc config "defragsvc" start= disabled
+sc stop "defragsvc"
+
+REM seclogon start= demand
+sc config "seclogon" start= disabled
+sc stop "seclogon"
+
+REM mpssvc start= auto
+
+REM SharedAccess start= demand
+sc config "SharedAccess" start= disabled
+sc stop "SharedAccess"
+
+REM Schedule start= auto
+REM PlugPlay start= demand
+REM AppReadiness start= demand
+
+REM wercplsupport start= demand
+sc config "wercplsupport" start= disabled
+sc stop "wercplsupport"
+
+REM AxInstSV start= demand
+sc config "AxInstSV" start= disabled
+sc stop "AxInstSV"
+
+REM TrustedInstaller start= demand
+REM tzautoupdate start= disabled
+
+REM CertPropSvc start= demand
+sc config "CertPropSvc" start= disabled
+sc stop "CertPropSvc"
+
+REM Eaphost start= demand
+
+REM PNRPsvc start= demand
+sc config "PNRPsvc" start= disabled
+sc stop "PNRPsvc"
+
+REM FDResPub start= demand
+sc config "FDResPub" start= disabled
+sc stop "FDResPub"
+
+REM RtkBtManServ start= disabled
+
+REM UmRdpService start= demand
+sc config "UmRdpService" start= disabled
+sc stop "UmRdpService"
+
+REM RemoteRegistry start= disabled
+
+REM vmicvss start= demand
+sc config "vmicvss" start= disabled
+sc stop "vmicvss"
+
+REM RemoteAccess start= disabled
+REM SDRSVC start= demand
+REM LanmanServer start= auto
+
+REM FrameServer start= demand
+sc config "FrameServer" start= disabled
+sc stop "FrameServer"
+
+REM LicenseManager start= demand
+REM WinDefend start= auto
+
+REM vmicshutdown start= demand
+sc config "vmicshutdown" start= disabled
+sc stop "vmicshutdown"
+
+REM AssignedAccessManagerSvc start= demand
+sc config "AssignedAccessManagerSvc" start= disabled
+sc stop "AssignedAccessManagerSvc"
+
+REM BthAvctpSvc start= demand
+sc config "BthAvctpSvc" start= disabled
+sc stop "BthAvctpSvc"
+
+REM DevQueryBroker start= demand
+REM SystemEventsBroker start= auto
+REM SgrmBroker start= auto
+
+REM NcbService start= demand
+sc config "NcbService" start= disabled
+sc stop "NcbService"
+
+REM TimeBrokerSvc start= demand
+REM diagnosticshub.standardcollector.service start= demand
+REM NetSetupSvc start= demand
+REM DeviceAssociationService start= demand
+
+REM ScDeviceEnum start= demand
+sc config "ScDeviceEnum" start= disabled
+sc stop "ScDeviceEnum"
+
+REM fhsvc start= demand
+sc config "fhsvc" start= disabled
+sc stop "fhsvc"
+
+REM cloudidsvc start= demand
+sc config "cloudidsvc" start= disabled
+sc stop "cloudidsvc"
+
+REM BrokerInfrastructure start= auto
+REM WdNisSvc start= demand
+REM DeviceInstall start= demand
+REM DisplayEnhancementService start= demand
+
+REM WbioSrvc start= demand
+sc config "WbioSrvc" start= disabled
+sc stop "WbioSrvc"
+
+REM FontCache start= auto
+
+REM SensorService start= demand
+sc config "SensorService" start= disabled
+sc stop "SensorService"
+
+REM BDESVC start= demand
+sc config "BDESVC" start= disabled
+sc stop "BDESVC"
+
+REM VacSvc start= demand
+sc config "VacSvc" start= disabled
+sc stop "VacSvc"
+
+REM WlanSvc start= auto
+
+REM WwanSvc start= demand
+sc config "WwanSvc" start= disabled
+sc stop "WwanSvc"
+
+REM IpxlatCfgSvc start= demand
+sc config "IpxlatCfgSvc" start= disabled
+sc stop "IpxlatCfgSvc"
+
+REM WinHttpAutoProxySvc start= demand
+
+REM RetailDemo start= demand
+sc config "RetailDemo" start= disabled
+sc stop "RetailDemo"
+
+REM AppXSvc start= demand
+
+REM SharedRealitySvc start= demand
+sc config "SharedRealitySvc" start= disabled
+sc stop "SharedRealitySvc"
+
+REM lfsvc start= demand
+sc config "lfsvc" start= disabled
+sc stop "lfsvc"
+
+REM WManSvc start= demand
+
+REM RmSvc start= demand
+sc config "RmSvc" start= disabled
+sc stop "RmSvc"
+
+REM PcaSvc start= demand
+sc config "PcaSvc" start= disabled
+sc stop "PcaSvc"
+
+REM wlpasvc start= demand
+
+REM ALG start= demand
+sc config "ALG" start= disabled
+sc stop "ALG"
+
+REM XboxNetApiSvc start= demand
+sc config "XboxNetApiSvc" start= disabled
+sc stop "XboxNetApiSvc"
+
+REM wbengine start= demand
+REM SENS start= auto
+REM NetTcpPortSharing start= disabled
+REM DsSvc start= demand
+
+REM BTAGService start= demand
+sc config "BTAGService" start= disabled
+sc stop "BTAGService"
+
+REM spectrum start= demand
+sc config "spectrum" start= disabled
+sc stop "spectrum"
+
+REM CDPSvc start= auto
+sc config "CDPSvc" start= disabled
+sc stop "CDPSvc"
+
+REM bthserv start= demand
+sc config "bthserv" start= disabled
+sc stop "bthserv"
+
+REM ProfSvc start= auto
+
+REM PNRPAutoReg start= demand
+sc config "PNRPAutoReg" start= disabled
+sc stop "PNRPAutoReg"
+
+REM WerSvc start= demand
+sc config "WerSvc" start= disabled
+sc stop "WerSvc"
+
+REM TroubleshootingSvc start= demand
+sc config "TroubleshootingSvc" start= disabled
+sc stop "TroubleshootingSvc"
+
+REM dmwappushservice start= demand
+sc config "dmwappushservice" start= disabled
+sc stop "dmwappushservice"
+
+REM AJRouter start= demand
+sc config "AJRouter" start= disabled
+sc stop "AJRouter"
+
+REM perceptionsimulation start= demand
+sc config "perceptionsimulation" start= disabled
+sc stop "perceptionsimulation"
+
+REM StorSvc start= auto
+sc config "StorSvc" start= disabled
+sc stop "StorSvc"
+
+REM DispBrokerDesktopSvc start= auto
+
+REM DPS start= auto
+sc config "DPS" start= disabled
+sc stop "DPS"
+
+REM SensrSvc start= demand
+sc config "SensrSvc" start= disabled
+sc stop "SensrSvc"
+
+REM BITS start= auto
+
+REM vmicrdv start= demand
+sc config "vmicrdv" start= disabled
+sc stop "vmicrdv"
+
+REM LxpSvc start= demand
+sc config "LxpSvc" start= disabled
+sc stop "LxpSvc"
+
+REM HvHost start= demand
+sc config "HvHost" start= disabled
+sc stop "HvHost"
+
+REM DmEnrollmentSvc start= demand
+
+REM SensorDataService start= demand
+sc config "SensorDataService" start= disabled
+sc stop "SensorDataService"
+
+REM TabletInputService start= demand
+sc config "TabletInputService" start= disabled
+sc stop "TabletInputService"
+
+REM hidserv start= demand
+
+REM WpnService start= auto
+sc config "WpnService" start= disabled
+sc stop "WpnService"
+
+REM vmickvpexchange start= demand
+sc config "vmickvpexchange" start= disabled
+sc stop "vmickvpexchange"
+
+REM WPDBusEnum start= demand
+sc config "WPDBusEnum" start= disabled
+sc stop "WPDBusEnum"
+
+REM camsvc start= demand
+sc config "camsvc" start= disabled
+sc stop "camsvc"
+
+REM WEPHOSTSVC start= demand
+
+REM WdiServiceHost start= demand
+sc config "WdiServiceHost" start= disabled
+sc stop "WdiServiceHost"
+
+REM vmicvmsession start= demand
+sc config "vmicvmsession" start= disabled
+sc stop "vmicvmsession"
+
+REM MSiSCSI start= demand
+sc config "MSiSCSI" start= disabled
+sc stop "MSiSCSI"
+
+REM nsi start= auto
+REM KtmRm start= demand
+REM netprofm start= demand
+REM WaaSMedicSvc start= demand
+
+REM WMPNetworkSvc start= demand
+sc config "WMPNetworkSvc" start= disabled
+sc stop "WMPNetworkSvc"
+
+REM icssvc start= demand
+sc config "icssvc" start= disabled
+sc stop "icssvc"
+
+REM Sense start= demand
+
+REM vmicheartbeat start= demand
+sc config "vmicheartbeat" start= disabled
+sc stop "vmicheartbeat"
+
+REM PushToInstall start= demand
+sc config "PushToInstall" start= disabled
+sc stop "PushToInstall"
+
+REM SmsRouter start= demand
+sc config "SmsRouter" start= disabled
+sc stop "SmsRouter"
+
+REM SecurityHealthService start= demand
+REM StateRepository start= demand
+
+REM vmictimesync start= demand
+sc config "vmictimesync" start= disabled
+sc stop "vmictimesync"
+
+REM PhoneSvc start= demand
+sc config "PhoneSvc" start= disabled
+sc stop "PhoneSvc"
+
+REM UevAgentService start= disabled
+REM UdkUserSvc_5b1dd start= demand
+REM cbdhsvc_5b1dd start= demand
+REM WFDSConMgrSvc start= demand
+
+REM wisvc start= demand
+sc config "wisvc" start= disabled
+sc stop "wisvc"
+
+REM SstpSvc start= demand
+
+REM TermService start= demand
+sc config "TermService" start= disabled
+sc stop "TermService"
+
+REM CryptSvc start= auto
+REM shpamsvc start= disabled
+
+REM smphost start= demand
+sc config "smphost" start= disabled
+sc stop "smphost"
+
+REM Spooler start= auto
+REM LanmanWorkstation start= auto
+
+REM SCPolicySvc start= demand
+sc config "SCPolicySvc" start= disabled
+sc stop "SCPolicySvc"
+
+REM SysMain start= auto
+REM EventSystem start= auto
+REM EFS start= demand
+
+REM Fax start= demand
+sc config "Fax" start= disabled
+sc stop "Fax"
+
+REM TapiSrv start= demand
+sc config "TapiSrv" start= disabled
+sc stop "TapiSrv"
+
+REM W32Time start= demand
+REM Themes start= auto
+REM svsvc start= demand
+
+REM WalletService start= demand
+sc config "WalletService" start= disabled
+sc stop "WalletService"
+
+REM WarpJITSvc start= demand
+sc config "WarpJITSvc" start= disabled
+sc stop "WarpJITSvc"
+
+REM WebClient start= demand
+sc config "WebClient" start= disabled
+sc stop "WebClient"
+
+REM wcncsvc start= demand
+sc config "wcncsvc" start= disabled
+sc stop "wcncsvc"
+
+REM msiserver start= demand
+REM WSearch start= auto
+
+REM wuauserv start= demand
+sc config "wuauserv" start= demand
+
+REM XboxGipSvc start= demand
+sc config "XboxGipSvc" start= disabled
+sc stop "XboxGipSvc"
+
+REM ---------------------------------------------------
+REM End of services configs
+REM ---------------------------------------------------
+
